@@ -20,6 +20,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUsers, r
   const [userFormData, setUserFormData] = useState<Partial<SystemUser>>({
     name: '',
     username: '',
+    password: '', // Added password field
     role: UserRole.CS,
     isActive: true,
     employeeId: '',
@@ -51,11 +52,17 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUsers, r
     };
 
     if (editingUserId) {
-      onUpdateUsers(users.map(u => u.id === editingUserId ? { ...u, ...finalData } as SystemUser : u));
+      onUpdateUsers(users.map(u => u.id === editingUserId ? {
+        ...u,
+        ...finalData,
+        // Only update password if user entered something
+        password: userFormData.password ? userFormData.password : u.password
+      } as SystemUser : u));
     } else {
       const newUser: SystemUser = {
         ...finalData,
         id: Math.random().toString(36).substr(2, 9),
+        password: userFormData.password || '1', // Default password '1'
         isActive: true,
       } as SystemUser;
       onUpdateUsers([...users, newUser]);
@@ -239,6 +246,17 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUsers, r
                     onChange={e => setUserFormData({ ...userFormData, username: e.target.value })}
                     className={`w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-white transition-all lowercase ${editingUserId ? 'opacity-50 cursor-not-allowed' : ''}`}
                     placeholder="username..."
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide ml-0.5">Mật khẩu {editingUserId && '(Để trống nếu không đổi)'}</label>
+                  <input
+                    type="text"
+                    value={userFormData.password || ''}
+                    onChange={e => setUserFormData({ ...userFormData, password: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 focus:bg-white transition-all"
+                    placeholder={editingUserId ? "********" : "Nhập mật khẩu..."}
                   />
                 </div>
 
