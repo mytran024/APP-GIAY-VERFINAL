@@ -938,7 +938,7 @@ const VesselImport: React.FC<VesselImportProps> = ({
                         <td className="px-4 py-3 text-center font-bold text-slate-700">{c.pkgs}</td>
                         <td className="px-4 py-3 text-center font-medium text-purple-600">{c.customsPkgs !== undefined ? c.customsPkgs : '-'}</td>
                         <td className="px-4 py-3 text-center font-black text-blue-600">{c.weight.toFixed(1)}</td>
-                        <td className="px-4 py-3 text-center font-bold text-purple-600">{c.customsWeight !== undefined ? c.customsWeight.toFixed(1) : '-'}</td>
+                        <td className="px-4 py-3 text-center font-bold text-purple-600">{c.customsWeight != null ? c.customsWeight.toFixed(1) : '-'}</td>
                         <td className="px-4 py-3 text-center text-slate-500">{c.vendor}</td>
                         <td className={`px-4 py-3 text-center font-bold ${checkDetentionStatus(c.detExpiry) === 'urgent' ? 'text-red-500' : 'text-slate-500'}`}>{displayDate(c.detExpiry)}</td>
                         <td className="px-4 py-3 text-center text-slate-500">{c.noiHaRong}</td>
