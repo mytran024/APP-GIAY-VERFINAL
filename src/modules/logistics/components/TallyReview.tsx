@@ -539,7 +539,7 @@ const TallyReview: React.FC<{ containers: Container[], vessels: Vessel[], onUpda
       <div className="absolute left-[-9999px] top-0 pointer-events-none">
         {isExportingPDF && currentPrintReport && (
           <div id="new-tally-pdf-template">
-            <TallyPrintTemplate report={currentPrintReport.report} vessel={currentPrintReport.vessel} />
+            <TallyPrintTemplate report={currentPrintReport.report} vessel={currentPrintReport.vessel as any} />
           </div>
         )}
 
@@ -547,7 +547,7 @@ const TallyReview: React.FC<{ containers: Container[], vessels: Vessel[], onUpda
           <div id="all-tally-pdf-template">
             {allPrintReports.map((item, idx) => (
               <div key={idx} className="page-break">
-                <TallyPrintTemplate report={item.report} vessel={item.vessel} />
+                <TallyPrintTemplate report={item.report} vessel={item.vessel as any} />
               </div>
             ))}
           </div>

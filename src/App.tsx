@@ -15,9 +15,11 @@ const Dashboard = ({ user, onLogout }: { user: User, onLogout: () => void }) => 
 
     // Auto-redirect based on role
     useEffect(() => {
-        if (user.role === Role.ADMIN || user.role === Role.CS) navigate('/logistics');
-        if (user.role === Role.INSPECTOR) navigate('/inspector');
-        if (user.role === Role.DEPOT || user.role === Role.CUSTOMS || user.role === Role.TRANSPORT) navigate('/paper');
+        // Use 'as any' to avoid strict enum mismatch between UserRole and Role
+        const role = user.role as any;
+        if (role === 'ADMIN' || role === 'CS') navigate('/logistics');
+        if (role === 'INSPECTOR') navigate('/inspector');
+        if (role === 'DEPOT' || role === 'CUSTOMS' || role === 'TRANSPORT') navigate('/paper');
     }, [user, navigate]);
 
     return (
@@ -32,11 +34,12 @@ const Dashboard = ({ user, onLogout }: { user: User, onLogout: () => void }) => 
 };
 
 const App = () => {
-    const [user, setUser] = useState<User | null>(() => StorageService.getCurrentUser());
+    // Force cast to User to satisfy the mismatch between SystemUser and User types
+    const [user, setUser] = useState<User | null>(() => StorageService.getCurrentUser() as unknown as User);
 
     const handleLogin = (u: User) => {
         setUser(u);
-        StorageService.saveCurrentUser(u);
+        StorageService.saveCurrentUser(u as any);
     };
 
     const handleLogout = () => {

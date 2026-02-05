@@ -181,8 +181,10 @@ const PaperEntry: React.FC<PaperProps> = ({ user: globalUser, onLogout }) => {
   const renderContent = () => {
     if (!user) return null;
 
+    if (currentView === 'containers' || currentView === 'yard-plan') return <DepotView vessels={globalVessels} containers={containers} />;
+
     if (currentView === 'dashboard') {
-      if (user.role === Role.DEPOT || currentView === 'containers' || currentView === 'yard-plan') return <DepotView vessels={globalVessels} containers={containers} />;
+      if (user.role === Role.DEPOT) return <DepotView vessels={globalVessels} containers={containers} />;
       if (user.role === Role.CUSTOMS) return <CustomsView vessels={globalVessels} csContainers={containers} onSyncDiscrepancy={handleSyncDiscrepancy} onSaveCustomsData={handleSaveCustomsData} />;
       if (user.role === Role.TRANSPORT) return <TransportView vessels={globalVessels} />;
     }

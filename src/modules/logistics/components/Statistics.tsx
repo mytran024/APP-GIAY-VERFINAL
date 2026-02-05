@@ -140,7 +140,7 @@ const Statistics: React.FC<{
       vehicleNo: wo.vehicleNos ? wo.vehicleNos.join(', ') : (wo.vehicleNo || ''),
       // Ensure other required fields are present
       type: wo.type === WorkOrderType.LABOR ? 'CONG_NHAN' : (wo.isOutsourced ? 'CO_GIOI_NGOAI' : 'CO_GIOI')
-    };
+    } as any;
 
     setCurrentPrintWO({ wo: inspectorWO, report });
     setIsExportingPDF(true);
@@ -381,7 +381,7 @@ const Statistics: React.FC<{
       <div className="absolute left-[-9999px] top-0 pointer-events-none">
         {currentPrintWO && (
           <div id="wo-print-template">
-            <WorkOrderPrintTemplate wo={currentPrintWO.wo} report={currentPrintWO.report} />
+            <WorkOrderPrintTemplate wo={currentPrintWO.wo as any} report={currentPrintWO.report} />
           </div>
         )}
       </div>
