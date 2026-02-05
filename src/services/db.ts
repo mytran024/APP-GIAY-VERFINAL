@@ -638,7 +638,7 @@ export const db = {
         const payload = {
             id: u.id,
             username: u.username,
-            password: (u as any).password, // Explicitly handle password if present in type or passed in
+            password: u.password, // Explicitly handle password if present in type or passed in
             name: u.name,
             role: u.role,
             is_active: u.isActive,

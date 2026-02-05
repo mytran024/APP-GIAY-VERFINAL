@@ -149,6 +149,7 @@ export interface WorkOrder {
 export interface SystemUser {
   id: string;
   username: string;
+  password?: string; // Added for Supabase Auth Migration
   name: string;
   role: UserRole;
   isActive: boolean;
