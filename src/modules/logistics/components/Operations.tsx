@@ -50,6 +50,17 @@ const Operations: React.FC<OperationsProps> = ({
 
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'PENDING' | 'COMPLETED'>('ALL'); // NEW: Filter state
   const [searchQuery, setSearchQuery] = useState<string>(''); // NEW: Search state
+  const [users, setUsers] = useState<SystemUser[]>([]);
+
+  useEffect(() => {
+    db.getSystemUsers().then(setUsers);
+  }, []);
+
+  const getInspectorName = (username?: string) => {
+    if (!username) return '';
+    const user = users.find(u => u.username === username);
+    return user ? user.name : username;
+  };
 
   // 1. Unique Vessel Names
   const uniqueVesselNames = useMemo(() => {
@@ -594,7 +605,7 @@ const Operations: React.FC<OperationsProps> = ({
                         {/* NEW DATA COLUMNS */}
                         <td className="px-2 py-1.5 border border-slate-300 text-[11px] text-center font-medium text-slate-800 whitespace-nowrap">{displayDate(c.ngayNhapKho)}</td>
                         <td className="px-2 py-1.5 border border-slate-300 text-[11px] text-center font-medium text-slate-800 whitespace-nowrap">{c.shift || ''}</td>
-                        <td className="px-2 py-1.5 border border-slate-300 text-[11px] text-center font-medium text-slate-800 whitespace-nowrap uppercase">{c.inspector || ''}</td>
+                        <td className="px-2 py-1.5 border border-slate-300 text-[11px] text-center font-medium text-slate-800 whitespace-nowrap uppercase">{getInspectorName(c.inspector)}</td>
 
                         <td className="px-2 py-1.5 border border-slate-300 text-center font-bold text-[11px] text-slate-700">{c.pkgs}</td>
                         {/* <td className="px-2 py-1.5 border border-slate-300 text-center text-[11px] text-slate-500">{c.customsPkgs || '-'}</td> */}
