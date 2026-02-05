@@ -584,13 +584,11 @@ export const CustomsView: React.FC<CustomsViewProps> = ({ vessels, csContainers,
   const handleInputFocus = (containerId: string) => {
     // If multiple items are selected, and we focus on a specific "unique" field (Seal/Packages),
     // we want to drop the selection to JUST this item to prevent accidental bulk overwrite.
-    /*
     if (selectedContainerIds.size > 1 && selectedContainerIds.has(containerId)) {
       const newSet = new Set<string>();
       newSet.add(containerId);
       setSelectedContainerIds(newSet);
     }
-    */
   };
 
   return (
