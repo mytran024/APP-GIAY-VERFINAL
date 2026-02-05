@@ -13,9 +13,10 @@ interface HistoryViewProps {
   mode: 'TALLY' | 'WO';
   onEditTally?: (report: TallyReport) => void;
   onEditWO?: (wo: WorkOrder) => void;
+  user: string;
 }
 
-const HistoryView: React.FC<HistoryViewProps> = ({ reports, workOrders, mode, onEditTally, onEditWO }) => {
+const HistoryView: React.FC<HistoryViewProps> = ({ reports, workOrders, mode, onEditTally, onEditWO, user }) => {
   const [woFilter, setWoFilter] = useState<'CONG_NHAN' | 'CO_GIOI' | 'CO_GIOI_NGOAI'>('CONG_NHAN');
   const [tallyTypeFilter, setTallyTypeFilter] = useState<'NHAP' | 'XUAT'>('NHAP');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'NHAP' | 'HOAN_TAT'>('ALL');
@@ -51,11 +52,16 @@ const HistoryView: React.FC<HistoryViewProps> = ({ reports, workOrders, mode, on
   const [previewReport, setPreviewReport] = useState<TallyReport | null>(null);
   const [previewWO, setPreviewWO] = useState<WorkOrder | null>(null);
 
+  // STRICT FILTER: Only show reports created by this user
+  const myReports = useMemo(() => {
+    return reports.filter(r => r.createdBy === user);
+  }, [reports, user]);
+
   const owners = useMemo(() => {
     const set = new Set<string>();
-    reports.forEach(r => { if (r.owner) set.add(r.owner); });
+    myReports.forEach(r => { if (r.owner) set.add(r.owner); });
     return Array.from(set);
-  }, [reports]);
+  }, [myReports]);
 
   // Extract unique organizations for dropdown from constant lists (CS)
   const availableOrgs = useMemo(() => {
@@ -113,19 +119,28 @@ const HistoryView: React.FC<HistoryViewProps> = ({ reports, workOrders, mode, on
     }
   };
 
-  // Count stats for Tabs
+  // Count stats for Tabs (Using myReports)
   const statusCounts = useMemo(() => {
-    return reports.reduce((acc, r) => {
+    return myReports.reduce((acc, r) => {
       if (r.mode !== tallyTypeFilter) return acc;
       acc.ALL++;
       if (r.status === 'NHAP') acc.NHAP++;
       else if (r.status === 'HOAN_TAT') acc.HOAN_TAT++;
       return acc;
     }, { ALL: 0, NHAP: 0, HOAN_TAT: 0 });
-  }, [reports, tallyTypeFilter]);
+  }, [myReports, tallyTypeFilter]);
+
+  // Count totals for Main Tabs (Import/Export split)
+  const modeCounts = useMemo(() => {
+    return myReports.reduce((acc, r) => {
+      if (r.mode === 'NHAP') acc.NHAP++;
+      else if (r.mode === 'XUAT') acc.XUAT++;
+      return acc;
+    }, { NHAP: 0, XUAT: 0 });
+  }, [myReports]);
 
   const filteredReports = useMemo(() => {
-    return reports.filter(r => {
+    return myReports.filter(r => {
       if (r.mode !== tallyTypeFilter) return false;
       if (statusFilter !== 'ALL' && r.status !== statusFilter) return false;
 
@@ -141,11 +156,17 @@ const HistoryView: React.FC<HistoryViewProps> = ({ reports, workOrders, mode, on
       }
       return matchDate;
     });
-  }, [reports, tallyTypeFilter, statusFilter, selectedVesselIds, selectedOwners, fromDate, toDate]);
+  }, [myReports, tallyTypeFilter, statusFilter, selectedVesselIds, selectedOwners, fromDate, toDate]);
 
   const filteredWOs = useMemo(() => {
     return workOrders.filter(wo => {
+      // 1. Check WO Type
       if (wo.type !== woFilter) return false;
+
+      // 2. Check Ownership via Relation to Tally Report
+      const relatedTally = reports.find(r => r.id === wo.reportId);
+      // Strictly enforce: Must belong to a Tally Report created by ME
+      if (!relatedTally || relatedTally.createdBy !== user) return false;
 
       // Filter by Organization/Worker Name (Multi-select)
       if (selectedOrgs.length > 0) {
@@ -156,8 +177,6 @@ const HistoryView: React.FC<HistoryViewProps> = ({ reports, workOrders, mode, on
         if (!matches) return false;
       }
 
-      const relatedTally = reports.find(r => r.id === wo.reportId);
-      if (!relatedTally) return false;
       let matchDate = true;
       const reportDateObj = new Date(relatedTally.workDate);
       const reportDateTs = reportDateObj.getTime();
@@ -171,7 +190,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ reports, workOrders, mode, on
       if (woToDate && reportDateTs > new Date(woToDate).getTime()) matchDate = false;
       return matchDate;
     });
-  }, [workOrders, woFilter, reports, selectedOrgs, woMonth, woFromDate, woToDate]);
+  }, [workOrders, woFilter, reports, user, selectedOrgs, woMonth, woFromDate, woToDate]);
 
 
 
@@ -262,8 +281,12 @@ const HistoryView: React.FC<HistoryViewProps> = ({ reports, workOrders, mode, on
       {mode === 'TALLY' ? (
         <>
           <div className="flex bg-gray-100 p-1 rounded-2xl print:hidden max-w-md mx-auto">
-            <button onClick={() => setTallyTypeFilter('NHAP')} className={`flex-1 py-3 text-[10px] font-black uppercase rounded-xl transition-all ${tallyTypeFilter === 'NHAP' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'}`}>Tally Hàng Nhập</button>
-            <button onClick={() => setTallyTypeFilter('XUAT')} className={`flex-1 py-3 text-[10px] font-black uppercase rounded-xl transition-all ${tallyTypeFilter === 'XUAT' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}>Tally Hàng Xuất</button>
+            <button onClick={() => setTallyTypeFilter('NHAP')} className={`flex-1 py-3 text-[10px] font-black uppercase rounded-xl transition-all ${tallyTypeFilter === 'NHAP' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'}`}>
+              Tally Hàng Nhập ({modeCounts.NHAP})
+            </button>
+            <button onClick={() => setTallyTypeFilter('XUAT')} className={`flex-1 py-3 text-[10px] font-black uppercase rounded-xl transition-all ${tallyTypeFilter === 'XUAT' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}>
+              Tally Hàng Xuất ({modeCounts.XUAT})
+            </button>
           </div>
 
           <div className="print:hidden space-y-4">

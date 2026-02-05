@@ -517,9 +517,9 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
           />
         );
       case 'DANH_SACH_TALLY':
-        return <HistoryView reports={allReports} workOrders={allWorkOrders} mode="TALLY" onEditTally={(r) => { setEditingReport(r); setStep('NHAP_TALLY'); }} />;
+        return <HistoryView reports={allReports} workOrders={allWorkOrders} mode="TALLY" user={user || ''} onEditTally={(r) => { setEditingReport(r); setStep('NHAP_TALLY'); }} />;
       case 'DANH_SACH_WO':
-        return <HistoryView reports={allReports} workOrders={allWorkOrders} mode="WO" />;
+        return <HistoryView reports={allReports} workOrders={allWorkOrders} mode="WO" user={user || ''} />;
       case 'HOAN_TAT':
         return (
           <CompletionView

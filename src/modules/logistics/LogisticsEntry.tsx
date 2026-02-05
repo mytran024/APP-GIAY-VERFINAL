@@ -179,72 +179,92 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
 
   // Reload Tally reports and Work Orders when tab is active (basic sync)
   useEffect(() => {
-    if (activeTab === 'tally' || activeTab === 'stats' || activeTab === 'debit') {
-      const wos = StorageService.getWorkOrders();
-      setWorkOrders(wos);
-
-      const inspWos = StorageService.getInspectorWorkOrders();
-      setInspectorWorkOrders(inspWos);
-
-      const reports = StorageService.getTallyReports();
-      setTallyReports(reports);
-    }
-  }, [activeTab]);
-
-  const combinedWorkOrders = useMemo(() => {
-    // Map Inspector WOs to Logistics WOs
-    const mappedInspectorWOs: WorkOrder[] = inspectorWorkOrders.map(wo => {
-      const report = tallyReports.find(tr => tr.id === wo.reportId);
-
-      // Format Date to DD/MM/YYYY
-      let dateStr = new Date().toLocaleDateString('en-GB');
-      if (report && report.workDate) {
+    const syncWithDB = async () => {
+      if (['tally', 'stats', 'debit', 'pct_history', 'reports'].includes(activeTab)) {
         try {
-          // Check if it matches YYYY-MM-DD
-          if (report.workDate.includes('-')) {
-            const parts = report.workDate.split('-'); // YYYY-MM-DD
-            if (parts.length === 3) dateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
-          } else {
-            // Fallback if it's already customized
-            dateStr = report.workDate;
-          }
+          const [reports, wos] = await Promise.all([
+            db.getTallyReports(),
+            db.getWorkOrders()
+          ]);
+          setTallyReports(reports);
+          setWorkOrders(wos);
+          setInspectorWorkOrders(StorageService.getInspectorWorkOrders());
         } catch (err) {
-          console.warn("Invalid workDate in report:", report.id, report.workDate);
+          console.error("Failed to sync history with Supabase:", err);
         }
       }
+    };
+    syncWithDB();
+  }, [activeTab]);
 
-      const isLabor = wo.type === 'CONG_NHAN';
+  // --- WORK ORDER NORMALIZATION HELPER ---
+  const normalizeWO = (wo: any): WorkOrder => {
+    // If it already has the nested 'items' structure, it's a Logistics WO
+    if (wo.items && Array.isArray(wo.items) && wo.items.length > 0) return wo;
 
-      return {
-        id: wo.id,
-        type: isLabor ? WorkOrderType.LABOR : WorkOrderType.MECHANICAL,
-        businessType: businessType, // Default to current context, or derive from report mode
-        reportId: wo.reportId, // Keep reference for printing
-        containerIds: [],
-        containerNos: [],
-        vesselId: vessels.find(v => v.id === (report?.vesselId || ''))?.id || '',
-        teamName: wo.organization,
-        workerNames: [wo.organization],
-        peopleCount: wo.personCount,
-        vehicleNos: [wo.vehicleNo].filter(Boolean),
-        shift: report?.shift || '1',
-        date: dateStr,
-        items: [{
-          start: '07:00', end: '11:00', // Dummy times
-          cargoType: wo.commodityType,
-          method: wo.handlingMethod,
-          quantity: wo.quantity,
-          weight: wo.weight,
-          note: wo.note
-        }],
-        status: WorkOrderStatus.COMPLETED,
-        isOutsourced: wo.type === 'CO_GIOI_NGOAI',
-        vehicleType: wo.vehicleType
-      } as WorkOrder;
+    // Otherwise, treat as an Inspector WO (Flat structure)
+    const report = tallyReports.find(tr => tr.id === wo.reportId);
+
+    // Format Date to DD/MM/YYYY
+    let dateStr = wo.date || new Date().toLocaleDateString('en-GB');
+    if (report && report.workDate) {
+      if (report.workDate.includes('-')) {
+        const parts = report.workDate.split('-');
+        if (parts.length === 3) dateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
+      } else {
+        dateStr = report.workDate;
+      }
+    }
+
+    const isLabor = wo.type === 'CONG_NHAN';
+    const totalUnits = wo.quantity || (report?.items.reduce((sum: number, i: any) => sum + i.actualUnits, 0)) || 0;
+    const totalWeight = wo.weight || (report?.items.reduce((sum: number, i: any) => sum + i.actualWeight, 0)) || 0;
+
+    return {
+      ...wo,
+      id: wo.id,
+      type: isLabor ? WorkOrderType.LABOR : WorkOrderType.MECHANICAL,
+      businessType: businessType,
+      vesselId: wo.vesselId || report?.vesselId || '',
+      teamName: wo.organization || wo.teamName || 'N/A',
+      workerNames: [wo.organization || wo.teamName].filter(Boolean),
+      peopleCount: wo.personCount || wo.peopleCount || 0,
+      vehicleNos: [wo.vehicleNo || wo.vehicleNos].flat().filter(Boolean),
+      shift: wo.shift || report?.shift || '1',
+      date: dateStr,
+      items: [{
+        start: '07:00', end: '11:00',
+        cargoType: wo.commodityType || 'Giấy vuông',
+        method: wo.handlingMethod || 'N/A',
+        quantity: totalUnits,
+        weight: totalWeight,
+        note: wo.note || ''
+      }],
+      status: wo.status === 'NHAP' ? WorkOrderStatus.PENDING : WorkOrderStatus.COMPLETED,
+      isOutsourced: wo.type === 'CO_GIOI_NGOAI' || wo.isOutsourced
+    } as WorkOrder;
+  };
+
+  const combinedWorkOrders = useMemo(() => {
+    // 1. Normalize DB WOs
+    const normalizedDB = workOrders.map(normalizeWO);
+
+    // 2. Normalize Local Inspector WOs (Legacy Support)
+    const normalizedLocal = inspectorWorkOrders.map(normalizeWO);
+
+    // 3. Merge and Deduplicate by ID
+    const merged = [...normalizedDB, ...normalizedLocal];
+    const uniqueMap = new Map<string, WorkOrder>();
+
+    merged.forEach(wo => {
+      // Prefer DB version if duplicate ID found (Supabase is source of truth)
+      if (!uniqueMap.has(wo.id)) {
+        uniqueMap.set(wo.id, wo);
+      }
     });
 
-    return [...workOrders, ...mappedInspectorWOs];
-  }, [workOrders, inspectorWorkOrders, vessels, tallyReports, businessType]);
+    return Array.from(uniqueMap.values());
+  }, [workOrders, inspectorWorkOrders, tallyReports, businessType, vessels]);
 
 
   // if (!isLoggedIn) return <Login onLogin={handleLogin} users={users} />;
