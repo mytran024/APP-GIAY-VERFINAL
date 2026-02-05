@@ -584,11 +584,13 @@ export const CustomsView: React.FC<CustomsViewProps> = ({ vessels, csContainers,
   const handleInputFocus = (containerId: string) => {
     // If multiple items are selected, and we focus on a specific "unique" field (Seal/Packages),
     // we want to drop the selection to JUST this item to prevent accidental bulk overwrite.
+    /*
     if (selectedContainerIds.size > 1 && selectedContainerIds.has(containerId)) {
       const newSet = new Set<string>();
       newSet.add(containerId);
       setSelectedContainerIds(newSet);
     }
+    */
   };
 
   return (
@@ -990,6 +992,9 @@ export const CustomsView: React.FC<CustomsViewProps> = ({ vessels, csContainers,
                                 value={rowData.sealNo}
                                 onChange={(e) => handleGridChange(container.id, 'sealNo', e.target.value)}
                                 onFocus={() => handleInputFocus(container.id)}
+                                onPaste={(e) => handlePaste(e, container.id, 'sealNo')}
+                                onMouseDown={() => handleMouseDown(container.id)}
+                                onMouseEnter={() => handleMouseEnter(container.id)}
                               />
                             </td>
                             <td className={`p-1 border-l ${isError ? 'border-red-200' : isWarning ? 'border-orange-200' : 'border-slate-100'}`}>
@@ -1040,6 +1045,7 @@ export const CustomsView: React.FC<CustomsViewProps> = ({ vessels, csContainers,
                                 placeholder="Nhập số TK..."
                                 value={rowData.dnlDeclNo}
                                 onChange={(e) => handleGridChange(container.id, 'dnlDeclNo', e.target.value)}
+                                onPaste={(e) => handlePaste(e, container.id, 'dnlDeclNo')}
                                 onMouseDown={() => handleMouseDown(container.id)}
                                 onMouseEnter={() => handleMouseEnter(container.id)}
                               />
@@ -1052,6 +1058,7 @@ export const CustomsView: React.FC<CustomsViewProps> = ({ vessels, csContainers,
                                   className={`w-full px-3 py-1.5 border border-transparent focus:border-blue-500 focus:bg-white bg-transparent focus:outline-none rounded transition-all font-mono ${isError ? 'text-red-900 placeholder-red-300' : 'text-blue-900'}`}
                                   value={rowData.dnlDeclDate || ''}
                                   onChange={(e) => handleGridChange(container.id, 'dnlDeclDate', e.target.value)}
+                                  onPaste={(e) => handlePaste(e, container.id, 'dnlDeclDate')}
                                   onMouseDown={() => handleMouseDown(container.id)}
                                   onMouseEnter={() => handleMouseEnter(container.id)}
                                 />
@@ -1080,6 +1087,9 @@ export const CustomsView: React.FC<CustomsViewProps> = ({ vessels, csContainers,
                                   onChange={(e) => handleGridChange(container.id, 'packages', e.target.value)}
                                   placeholder={container.packages.toString()}
                                   onFocus={() => handleInputFocus(container.id)}
+                                  onPaste={(e) => handlePaste(e, container.id, 'packages')}
+                                  onMouseDown={() => handleMouseDown(container.id)}
+                                  onMouseEnter={() => handleMouseEnter(container.id)}
                                 />
                                 {isError && (
                                   <button
@@ -1101,6 +1111,9 @@ export const CustomsView: React.FC<CustomsViewProps> = ({ vessels, csContainers,
                                   value={rowData.tons}
                                   onChange={(e) => handleGridChange(container.id, 'tons', e.target.value)}
                                   placeholder={container.tons.toString()}
+                                  onPaste={(e) => handlePaste(e, container.id, 'tons')}
+                                  onMouseDown={() => handleMouseDown(container.id)}
+                                  onMouseEnter={() => handleMouseEnter(container.id)}
                                 />
                                 {isError && (
                                   <button
