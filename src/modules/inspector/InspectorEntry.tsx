@@ -333,6 +333,7 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
               workOrderApproved: true,    // Auto-approve WO check?
               tallyApproved: true,        // Auto-approve Tally
               images: currentImages,      // Sync Image
+              ngayNhapKho: r.workDate,    // Sync Work Date from Tally to Date In
               // updated_at: ... handled by DB service
             });
           }
