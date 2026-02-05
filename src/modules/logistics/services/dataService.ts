@@ -40,8 +40,11 @@ export const normalizeDate = (input: any): string => {
 
 export const displayDate = (isoDate: string | undefined): string => {
   if (!isoDate) return '-';
-  const parts = isoDate.split('-');
+  // Handle ISO string with time "2023-11-20T14:..."
+  const datePart = isoDate.split('T')[0];
+  const parts = datePart.split('-');
   if (parts.length !== 3) return isoDate;
+  // parts[0] = YYYY, parts[1] = MM, parts[2] = DD
   return `${parts[2]}/${parts[1]}/${parts[0]}`;
 };
 
