@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { Vessel, Container, ContainerStatus, UnitType, BusinessType, ResourceMember, SystemUser, WorkOrder, ServicePrice, Consignee } from '../modules/logistics/types';
 import { TallyReport } from '../modules/inspector/types';
-import { SealData } from '../modules/paper/types';
+import { SealData, Vehicle } from '../modules/paper/types';
 
 /**
  * DATABASE SERVICE (SUPABASE ADAPTER)
@@ -369,5 +369,129 @@ export const db = {
 
         // items is already JSONB, so it maps directly
         return data as any as WorkOrder[];
+    }
+
+    upsertWorkOrder: async (wo: WorkOrder): Promise<{ data: WorkOrder | null, error: any }> => {
+        const payload = {
+            id: wo.id,
+            report_id: wo.reportId,
+            vessel_id: wo.vesselId,
+            type: wo.type,
+            business_type: wo.businessType,
+            status: wo.status,
+            team_name: wo.teamName,
+            worker_names: wo.workerNames,
+            people_count: wo.peopleCount || 0,
+            vehicle_nos: wo.vehicleNos,
+            vehicle_type: wo.vehicleType,
+            container_ids: wo.containerIds,
+            container_nos: wo.containerNos,
+            shift: wo.shift,
+            date: wo.date || null,
+            items: wo.items, // JSONB
+            is_holiday: wo.isHoliday,
+            is_weekend: wo.isWeekend,
+            is_outsourced: wo.isOutsourced,
+            updated_at: new Date().toISOString()
+        };
+
+        const { data, error } = await supabase.from('work_orders').upsert(payload).select().single();
+        if (error) {
+            console.error("Error saving WorkOrder:", error);
+            return { data: null, error };
+        }
+        return { data: data as any, error: null };
+    },
+
+    deleteWorkOrder: async (id: string): Promise<boolean> => {
+        const { error } = await supabase.from('work_orders').delete().eq('id', id);
+        return !error;
+    },
+
+    // --- TRANSPORT VEHICLES ---
+    getTransportVehicles: async (): Promise<Vehicle[]> => {
+        const { data, error } = await supabase
+            .from('transport_vehicles')
+            .select(`
+                id,
+                vesselId:vessel_id,
+                plateNumber:plate_number,
+                trailerNumber:trailer_number,
+                driverName:driver_name,
+                tripsCompleted:trips_completed,
+                status
+            `);
+
+        if (error) {
+            console.error("Error fetching vehicles:", error);
+            return [];
+        }
+        return data as any as Vehicle[];
+    },
+
+    upsertTransportVehicle: async (vehicle: Vehicle): Promise<{ data: Vehicle | null, error: any }> => {
+        const payload = {
+            id: vehicle.id,
+            vessel_id: vehicle.vesselId,
+            plate_number: vehicle.plateNumber,
+            trailer_number: vehicle.trailerNumber,
+            driver_name: vehicle.driverName,
+            trips_completed: vehicle.tripsCompleted || 0,
+            status: vehicle.status || 'ACTIVE',
+            updated_at: new Date().toISOString()
+        };
+
+        const { data, error } = await supabase.from('transport_vehicles').upsert(payload).select().single();
+        if (error) {
+            console.error("Error saving vehicle:", error);
+            return { data: null, error };
+        }
+        return { data: data as any, error: null };
+    },
+
+    deleteTransportVehicle: async (id: string): Promise<boolean> => {
+        const { error } = await supabase.from('transport_vehicles').delete().eq('id', id);
+        return !error;
+    },
+
+    // --- SEALS ---
+    getSeals: async (): Promise<SealData[]> => {
+        const { data, error } = await supabase
+            .from('seals')
+            .select(`
+                id,
+                vesselId:vessel_id,
+                serialNumber:serial_number,
+                status
+            `);
+
+        if (error) {
+            console.error("Error fetching seals:", error);
+            return [];
+        }
+        return data as any as SealData[];
+    },
+
+    upsertSeals: async (seals: SealData[]): Promise<{ count: number, error: any }> => {
+        if (!seals.length) return { count: 0, error: null };
+        const payloads = seals.map(s => ({
+            id: s.id,
+            vessel_id: s.vesselId,
+            serial_number: s.serialNumber,
+            status: s.status,
+            updated_at: new Date().toISOString()
+        }));
+
+        const { data, error } = await supabase.from('seals').upsert(payloads).select();
+        if (error) {
+            console.error("Error saving batch seals:", error);
+            return { count: 0, error };
+        }
+        return { count: data?.length || 0, error: null };
+    },
+
+    deleteSeal: async (id: string): Promise<boolean> => {
+        const { error } = await supabase.from('seals').delete().eq('id', id);
+        return !error;
     }
 };

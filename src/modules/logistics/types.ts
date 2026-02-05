@@ -117,6 +117,7 @@ export interface Container {
 
 export interface WorkOrder {
   id: string;
+  reportId?: string; // Link to Tally Report
   type: WorkOrderType;
   businessType: BusinessType;
   containerIds: string[];

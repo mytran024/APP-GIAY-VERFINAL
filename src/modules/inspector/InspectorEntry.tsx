@@ -11,6 +11,7 @@ import CompletionView from './views/CompletionView';
 import Header from './components/Header';
 import SuccessPopup from './components/SuccessPopup';
 import { StorageService } from '../../services/storage';
+import { db } from '../../services/db'; // Import DB
 import { User } from '../../types'; // Global User
 import { Vessel as LogisticsVessel, Container as LogisticsContainer, ResourceMember, ServicePrice } from '../logistics/types';
 import { SealData, Vehicle } from '../paper/types';
@@ -38,18 +39,42 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
   const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>('');
 
-  const [allReports, setAllReports] = useState<TallyReport[]>(() => StorageService.getTallyReports([]));
-  const [allWorkOrders, setAllWorkOrders] = useState<WorkOrder[]>(() => StorageService.getInspectorWorkOrders([]));
+  // Initial Load from DB
+  useEffect(() => {
+    // parallel fetch
+    Promise.all([
+      db.getTallyReports(),
+      db.getWorkOrders(),
+      db.getVessels(),
+      db.getContainers(),
+      db.getSeals(),
+      db.getTransportVehicles()
+    ]).then(([reports, wos, vessels, conts, seals, vehicles]) => {
+      setAllReports(reports);
+      setAllWorkOrders(wos);
+      setLogisticsVessels(vessels);
+      setLogisticsContainers(conts);
+      setExportSeals(seals);
+      setExportVehicles(vehicles);
+    });
 
-  // Synced from CS
-  const [logisticsVessels, setLogisticsVessels] = useState<LogisticsVessel[]>(() => StorageService.getVessels([]));
-  const [logisticsContainers, setLogisticsContainers] = useState<LogisticsContainer[]>(() => StorageService.getContainers([]));
-  const [resources, setResources] = useState<ResourceMember[]>(() => StorageService.getResources([]));
+    // Legacy: Resources and Prices still from Storage (or TODO: move to DB)
+    setResources(StorageService.getResources([]));
+    setPrices(StorageService.getPrices([]));
+  }, []);
+
+  const [allReports, setAllReports] = useState<TallyReport[]>([]);
+  const [allWorkOrders, setAllWorkOrders] = useState<WorkOrder[]>([]);
+
+  // Synced from CS (DB)
+  const [logisticsVessels, setLogisticsVessels] = useState<LogisticsVessel[]>([]);
+  const [logisticsContainers, setLogisticsContainers] = useState<LogisticsContainer[]>([]);
+  const [resources, setResources] = useState<ResourceMember[]>([]);
   // Load Prices for Weight Factor
-  const [prices, setPrices] = useState<ServicePrice[]>(() => StorageService.getPrices([]));
-  // Synced from Paper (Customs/Transport)
-  const [exportSeals, setExportSeals] = useState<SealData[]>(() => StorageService.getSeals([]));
-  const [exportVehicles, setExportVehicles] = useState<Vehicle[]>(() => StorageService.getExportVehicles([]));
+  const [prices, setPrices] = useState<ServicePrice[]>([]);
+  // Synced from Paper (DB)
+  const [exportSeals, setExportSeals] = useState<SealData[]>([]);
+  const [exportVehicles, setExportVehicles] = useState<Vehicle[]>([]);
 
   const [editingReport, setEditingReport] = useState<TallyReport | null>(null);
   const [lastCreatedWOs, setLastCreatedWOs] = useState<WorkOrder[]>([]);
@@ -78,14 +103,9 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
     return () => window.removeEventListener('storage-update', handleStorageUpdate as EventListener);
   }, []);
 
-  // Sync to Storage
-  useEffect(() => {
-    StorageService.saveTallyReports(allReports);
-  }, [allReports]);
+  // Removed local storage sync effects as we now save directly on action
+  // But kept listener for Resources updates (if they are still local)
 
-  useEffect(() => {
-    StorageService.saveInspectorWorkOrders(allWorkOrders);
-  }, [allWorkOrders]);
 
   // Derived Data for Views
   const inspectorVessels: Vessel[] = logisticsVessels.map(v => {
@@ -234,7 +254,16 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
       createSubReports(groupedItems.container, 'CONTAINER');
       createSubReports(groupedItems.flatbed, 'XE_THOT');
 
-      setAllReports([...finalReports, ...allReports]);
+      createSubReports(groupedItems.container, 'CONTAINER');
+      createSubReports(groupedItems.flatbed, 'XE_THOT');
+
+      // Update Local State
+      setAllReports(prev => [...finalReports, ...prev]);
+
+      // DB SAVE (Async)
+      finalReports.forEach(r => {
+        db.upsertTallyReport(r).catch(console.error);
+      });
     }
 
     if (isDraft) {
@@ -262,8 +291,11 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
             }
             return seal;
           });
+
+          // Update Local
           setExportSeals(updatedSeals);
-          StorageService.saveSeals(updatedSeals);
+          // DB Save
+          db.upsertSeals(updatedSeals).catch(console.error);
         }
       }
 
@@ -367,7 +399,10 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
         }
       });
 
-      setAllWorkOrders([...newWOs, ...allWorkOrders]);
+      setAllWorkOrders(prev => [...newWOs, ...prev]);
+      // DB Save WOs
+      newWOs.forEach(wo => db.upsertWorkOrder(wo).catch(console.error));
+
       setLastCreatedWOs(newWOs);
       setStep('HOAN_TAT');
     }
