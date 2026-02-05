@@ -510,6 +510,11 @@ export const db = {
         return { count: data?.length || 0, error: null };
     },
 
+    deleteSeal: async (id: string): Promise<boolean> => {
+        const { error } = await supabase.from('seals').delete().eq('id', id);
+        return !error;
+    },
+
     // --- SERVICE PRICES ---
     getServicePrices: async (): Promise<ServicePrice[]> => {
         const { data, error } = await supabase

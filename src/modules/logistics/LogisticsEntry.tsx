@@ -175,11 +175,7 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
     StorageService.saveResources(resourceMembers);
   }, [resourceMembers]); // Keep Resources Local for now or move next? User focused on Vessels first.
 
-  const [consignees, setConsignees] = useState<Consignee[]>(() => StorageService.getConsignees(MOCK_CONSIGNEES));
 
-  useEffect(() => {
-    StorageService.saveConsignees(consignees);
-  }, [consignees]);
 
   // Reload Tally reports and Work Orders when tab is active (basic sync)
   useEffect(() => {
