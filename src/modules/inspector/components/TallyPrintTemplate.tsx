@@ -203,7 +203,7 @@ const TallyPrintTemplate: React.FC<TallyPrintTemplateProps> = ({ report, vessel,
                       {chunk[0]?.commodityType || 'Giấy'}
                     </td>
                     <td className="text-center font-bold bg-white h-[28px] uppercase text-[10pt]">
-                      TÀU {vessel.name}
+                      {vessel.name}
                     </td>
                     <td className="text-center font-bold bg-white h-[28px] uppercase text-[10pt]">
                       VỊ TRÍ RÚT RUỘT:<br />KHO DANALOG
