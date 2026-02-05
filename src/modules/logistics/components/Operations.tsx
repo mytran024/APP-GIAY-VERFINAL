@@ -4,6 +4,7 @@ import { Container, Vessel, UnitType, BusinessType, ContainerStatus, DetentionCo
 import { StatusBadge } from './VesselImport';
 import { ICONS } from '../constants';
 import { checkDetentionStatus, displayDate } from '../services/dataService';
+import { db } from '../../../services/db';
 import JSZip from 'jszip';
 
 interface OperationsProps {
@@ -114,13 +115,21 @@ const Operations: React.FC<OperationsProps> = ({
 
   // Handle inline field updates
   const handleUpdateField = (id: string, field: keyof Container, value: any) => {
+    let targetContainer: Container | undefined;
     const updated = containers.map(c => {
       if (c.id === id) {
-        return { ...c, [field]: value };
+        const nc = { ...c, [field]: value };
+        targetContainer = nc;
+        return nc;
       }
       return c;
     });
     onUpdateContainers(updated);
+    if (targetContainer) {
+      db.upsertContainer(targetContainer).then(({ error }) => {
+        if (error) console.error("Error saving updated container:", error);
+      });
+    }
   };
 
   // Handle Batch Fill Logic
@@ -130,27 +139,44 @@ const Operations: React.FC<OperationsProps> = ({
     const count = containers.filter(c => c.tkNhaVC === source.tkNhaVC).length;
     // if (!confirm(`Bạn có chắc muốn áp dụng thông tin tờ khai này cho ${count} container có cùng mã TK Nhà VC: ${source.tkNhaVC}?`)) return;
 
+    const modifiedContainers: Container[] = [];
     const updated = containers.map(c => {
       if (c.tkNhaVC === source.tkNhaVC) {
-        return {
+        const nc = {
           ...c,
           ngayTkNhaVC: source.ngayTkNhaVC,
           tkDnlOla: source.tkDnlOla,
           ngayTkDnl: source.ngayTkDnl
         };
+        modifiedContainers.push(nc);
+        return nc;
       }
       return c;
     });
     onUpdateContainers(updated);
-    // Optional: Toast notification here
+
+    // Save batch
+    if (modifiedContainers.length > 0) {
+      db.upsertContainers(modifiedContainers).then(({ error }) => {
+        if (error) alert("Lỗi lưu batch container: " + error.message);
+      });
+    }
   };
 
   const handleUrge = (id: string) => {
     if (isExport) return;
+    let targetContainer: Container | undefined;
     const updated = containers.map(c =>
-      c.id === id ? { ...c, lastUrgedAt: new Date().toISOString() } : c
+      c.id === id ? (() => {
+        const nc = { ...c, lastUrgedAt: new Date().toISOString() };
+        targetContainer = nc;
+        return nc;
+      })() : c
     );
     onUpdateContainers(updated);
+    if (targetContainer) {
+      db.upsertContainer(targetContainer).catch(console.error);
+    }
   };
 
   // LOGIC LAN TRUYỀN CẢNH BÁO THEO TỜ KHAI
