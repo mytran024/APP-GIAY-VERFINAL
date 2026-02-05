@@ -1,4 +1,4 @@
-```
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Container, Vessel, UnitType, BusinessType, ContainerStatus, DetentionConfig, UserRole, SystemUser } from '../types';
 import { StatusBadge } from './VesselImport';
@@ -92,7 +92,7 @@ const Operations: React.FC<OperationsProps> = ({
     filtered.forEach(v => {
       const eta = v.eta ? new Date(v.eta).toLocaleDateString('en-GB') : '???';
       const etd = v.etd ? new Date(v.etd).toLocaleDateString('en-GB') : '???';
-      schedules.add(`ETA: ${ eta } - ETD: ${ etd } `);
+      schedules.add(`ETA: ${eta} - ETD: ${etd} `);
     });
     return Array.from(schedules).sort();
   }, [vessels, filterVesselName, filterConsignee]);
@@ -106,7 +106,7 @@ const Operations: React.FC<OperationsProps> = ({
 
         const eta = v.eta ? new Date(v.eta).toLocaleDateString('en-GB') : '???';
         const etd = v.etd ? new Date(v.etd).toLocaleDateString('en-GB') : '???';
-        const scheduleString = `ETA: ${ eta } - ETD: ${ etd } `;
+        const scheduleString = `ETA: ${eta} - ETD: ${etd} `;
 
         return nameMatch && consigneeMatch && (scheduleString === filterSchedule);
       });
@@ -239,7 +239,7 @@ const Operations: React.FC<OperationsProps> = ({
     if (!viewingContainer || !viewingContainer.images) return;
     setIsDownloading(true);
     const url = viewingContainer.images[activeImageIdx];
-    const filename = `${ viewingContainer.containerNo }_HinhAnh_${ activeImageIdx + 1 }.jpg`;
+    const filename = `${viewingContainer.containerNo}_HinhAnh_${activeImageIdx + 1}.jpg`;
 
     try {
       const response = await fetch(url);
@@ -268,12 +268,12 @@ const Operations: React.FC<OperationsProps> = ({
       for (let i = 0; i < viewingContainer.images.length; i++) {
         const response = await fetch(viewingContainer.images[i]);
         const blob = await response.blob();
-        folder?.file(`${ viewingContainer.containerNo }_${ i + 1 }.jpg`, blob);
+        folder?.file(`${viewingContainer.containerNo}_${i + 1}.jpg`, blob);
       }
       const content = await zip.generateAsync({ type: 'blob' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(content);
-      link.download = `HoSo_${ viewingContainer.containerNo }.zip`;
+      link.download = `HoSo_${viewingContainer.containerNo}.zip`;
       link.click();
     } catch (e) {
       alert("Lỗi nén ZIP!");
@@ -290,8 +290,8 @@ const Operations: React.FC<OperationsProps> = ({
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">DANH MỤC:</span>
             <div className="flex bg-slate-100 p-1 rounded-xl">
-              <button onClick={() => onSwitchBusinessType(BusinessType.IMPORT)} className={`px - 6 py - 1.5 rounded - lg text - [9px] font - black uppercase transition - all tracking - wider ${ !isExport ? 'bg-white shadow-sm text-blue-600 border border-slate-100' : 'text-slate-400' } `}>Hàng Nhập</button>
-              <button onClick={() => onSwitchBusinessType(BusinessType.EXPORT)} className={`px - 6 py - 1.5 rounded - lg text - [9px] font - black uppercase transition - all tracking - wider ${ isExport ? 'bg-white shadow-sm text-emerald-600 border border-slate-100' : 'text-slate-400' } `}>Hàng Xuất</button>
+              <button onClick={() => onSwitchBusinessType(BusinessType.IMPORT)} className={`px-6 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all tracking-wider ${!isExport ? 'bg-white shadow-sm text-blue-600 border border-slate-100' : 'text-slate-400'} `}>Hàng Nhập</button>
+              <button onClick={() => onSwitchBusinessType(BusinessType.EXPORT)} className={`px-6 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all tracking-wider ${isExport ? 'bg-white shadow-sm text-emerald-600 border border-slate-100' : 'text-slate-400'} `}>Hàng Xuất</button>
             </div>
           </div>
 
@@ -427,19 +427,19 @@ const Operations: React.FC<OperationsProps> = ({
           <div className="flex bg-slate-100 p-1 rounded-xl">
             <button
               onClick={() => setFilterStatus('ALL')}
-              className={`px - 3 py - 1.5 rounded - lg text - [10px] font - bold transition - all ${ filterStatus === 'ALL' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600' } `}
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${filterStatus === 'ALL' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'} `}
             >
               TẤT CẢ
             </button>
             <button
               onClick={() => setFilterStatus('PENDING')}
-              className={`px - 3 py - 1.5 rounded - lg text - [10px] font - bold transition - all ${ filterStatus === 'PENDING' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-400 hover:text-slate-600' } `}
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${filterStatus === 'PENDING' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'} `}
             >
               CHƯA KHAI THÁC
             </button>
             <button
               onClick={() => setFilterStatus('COMPLETED')}
-              className={`px - 3 py - 1.5 rounded - lg text - [10px] font - bold transition - all ${ filterStatus === 'COMPLETED' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600' } `}
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${filterStatus === 'COMPLETED' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'} `}
             >
               ĐÃ KHAI THÁC
             </button>
@@ -523,7 +523,7 @@ const Operations: React.FC<OperationsProps> = ({
                 }
 
                 return (
-                  <tr key={c.id} className={`${ rowBg } hover: bg - slate - 100 transition - colors group`}>
+                  <tr key={c.id} className={`${rowBg} hover:bg-slate-100 transition-colors group`}>
                     <td className="px-2 py-1.5 border border-slate-300 text-center text-[11px] font-medium text-slate-500 sticky left-0 z-10" style={{ backgroundColor: 'inherit' }}>{index + 1}</td>
 
                     {!isExport ? (
@@ -533,7 +533,7 @@ const Operations: React.FC<OperationsProps> = ({
                         <td className="px-2 py-1.5 border border-slate-300 text-[11px] text-center font-medium text-slate-600 whitespace-nowrap">{c.sealNo || ''}</td>
 
                         {/* EDITABLE: TK Nha VC (Conditional) */}
-                        <td className={`px - 2 py - 1.5 border border - slate - 300 text - [11px] text - center font - medium text - slate - 700 whitespace - nowrap ${ canEditCustoms ? 'bg-blue-50/30 p-0 relative group/cell' : '' } `}>
+                        <td className={`px-2 py-1.5 border border-slate-300 text-[11px] text-center font-medium text-slate-700 whitespace-nowrap ${canEditCustoms ? 'bg-blue-50/30 p-0 relative group/cell' : ''} `}>
                           {canEditCustoms ? (
                             <>
                               <input
@@ -560,7 +560,7 @@ const Operations: React.FC<OperationsProps> = ({
                         </td>
 
                         {/* EDITABLE: Ngay TK Nha VC (Conditional) */}
-                        <td className={`px - 2 py - 1.5 border border - slate - 300 text - [11px] text - center font - medium text - slate - 600 whitespace - nowrap ${ canEditCustoms ? 'p-0' : '' } `}>
+                        <td className={`px-2 py-1.5 border border-slate-300 text-[11px] text-center font-medium text-slate-600 whitespace-nowrap ${canEditCustoms ? 'p-0' : ''} `}>
                           {canEditCustoms ? (
                             <input
                               type="date"
@@ -574,7 +574,7 @@ const Operations: React.FC<OperationsProps> = ({
                         </td>
 
                         {/* EDITABLE: TK DNL (Conditional) */}
-                        <td className={`px - 2 py - 1.5 border border - slate - 300 text - [11px] text - center font - bold whitespace - nowrap ${ canEditCustoms ? 'p-0' : '' } ${ c.tkDnlOla ? 'text-blue-600' : 'text-slate-300' } `}>
+                        <td className={`px-2 py-1.5 border border-slate-300 text-[11px] text-center font-bold whitespace-nowrap ${canEditCustoms ? 'p-0' : ''} ${c.tkDnlOla ? 'text-blue-600' : 'text-slate-300'} `}>
                           {canEditCustoms ? (
                             <input
                               type="text"
@@ -589,7 +589,7 @@ const Operations: React.FC<OperationsProps> = ({
                         </td>
 
                         {/* EDITABLE: Ngay TK DNL (Conditional) */}
-                        <td className={`px - 2 py - 1.5 border border - slate - 300 text - [11px] text - center font - medium text - slate - 600 whitespace - nowrap ${ canEditCustoms ? 'p-0' : '' } `}>
+                        <td className={`px-2 py-1.5 border border-slate-300 text-[11px] text-center font-medium text-slate-600 whitespace-nowrap ${canEditCustoms ? 'p-0' : ''} `}>
                           {canEditCustoms ? (
                             <input
                               type="date"
@@ -614,7 +614,7 @@ const Operations: React.FC<OperationsProps> = ({
                         <td className="px-2 py-1.5 border border-slate-300 text-[11px] text-center font-medium text-slate-600 whitespace-nowrap max-w-[100px] truncate" title={c.vendor}>{c.vendor || ''}</td>
                         <td className="px-2 py-1.5 border border-slate-300 text-center">
                           {c.detExpiry ? (
-                            <span className={`text - [10px] font - bold ${ detStatus === 'urgent' && !isCompleted ? 'text-red-600' : (detStatus === 'warning' && !isCompleted ? 'text-amber-600' : 'text-slate-600') } `}>
+                            <span className={`text-[10px] font-bold ${detStatus === 'urgent' && !isCompleted ? 'text-red-600' : (detStatus === 'warning' && !isCompleted ? 'text-amber-600' : 'text-slate-600')} `}>
                               {displayDate(c.detExpiry)}
                             </span>
                           ) : ''}
@@ -629,7 +629,7 @@ const Operations: React.FC<OperationsProps> = ({
                           {!isCompleted && (
                             <button
                               onClick={() => handleUrge(c.id)}
-                              className={`px - 2 py - 0.5 rounded text - [9px] font - bold uppercase transition - all shadow - sm border ${ c.lastUrgedAt ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-white text-slate-500 border-slate-200 hover:text-blue-600 hover:border-blue-500' } `}
+                              className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase transition-all shadow-sm border ${c.lastUrgedAt ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-white text-slate-500 border-slate-200 hover:text-blue-600 hover:border-blue-500'} `}
                             >
                               {c.lastUrgedAt ? 'Đã giục' : 'Đôn đốc'}
                             </button>
@@ -729,8 +729,8 @@ const Operations: React.FC<OperationsProps> = ({
 
                 {viewingContainer.images.length > 1 && (
                   <>
-                    <button onClick={() => setActiveImageIdx(p => (p === 0 ? (viewingContainer.images?.length || 1) - 1 : p - 1))} className="absolute left-6 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/10 hover:bg-white/30 text-white rounded-full flex items-center justify-center backdrop-blur-md transition-all"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7"></path></svg></button>
-                    <button onClick={() => setActiveImageIdx(p => (p === (viewingContainer.images?.length || 1) - 1 ? 0 : p + 1))} className="absolute right-6 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/10 hover:bg-white/30 text-white rounded-full flex items-center justify-center backdrop-blur-md transition-all"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7"></path></svg></button>
+                    <button onClick={() => setActiveImageIdx(p => (p === 0 ? (viewingContainer.images?.length || 1)-1 : p-1))} className="absolute left-6 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/10 hover:bg-white/30 text-white rounded-full flex items-center justify-center backdrop-blur-md transition-all"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7"></path></svg></button>
+                    <button onClick={() => setActiveImageIdx(p => (p === (viewingContainer.images?.length || 1)-1 ? 0 : p + 1))} className="absolute right-6 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/10 hover:bg-white/30 text-white rounded-full flex items-center justify-center backdrop-blur-md transition-all"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7"></path></svg></button>
                   </>
                 )}
 
@@ -764,7 +764,7 @@ const Operations: React.FC<OperationsProps> = ({
 
               <div className="flex gap-3 overflow-x-auto p-2">
                 {viewingContainer.images.map((img, idx) => (
-                  <button key={idx} onClick={() => setActiveImageIdx(idx)} className={`w - 20 h - 20 rounded - 2xl overflow - hidden border - 4 transition - all ${ activeImageIdx === idx ? 'border-emerald-500 scale-110 shadow-lg' : 'border-transparent opacity-40 hover:opacity-100' } `}>
+                  <button key={idx} onClick={() => setActiveImageIdx(idx)} className={`w-20 h-20 rounded-2xl overflow-hidden border-4 transition-all ${activeImageIdx === idx ? 'border-emerald-500 scale-110 shadow-lg' : 'border-transparent opacity-40 hover:opacity-100'} `}>
                     <img src={img} className="w-full h-full object-cover" />
                   </button>
                 ))}
@@ -796,7 +796,7 @@ const Operations: React.FC<OperationsProps> = ({
                       <div><p className="font-black text-slate-800 text-sm uppercase">{c.containerNo}</p><p className="text-[9px] font-bold text-indigo-600 uppercase mt-1">Lô: {c.tkNhaVC}</p></div>
                       <div className="flex gap-2">
                         <StatusBadge status={ContainerStatus.MISMATCH} />
-                        <button onClick={() => handleUrge(c.id)} className={`px - 3 py - 1.5 rounded - xl text - [9px] font - black uppercase transition - all ${ c.lastUrgedAt ? 'bg-emerald-600 text-white' : 'bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-600 hover:text-white' } `}>
+                        <button onClick={() => handleUrge(c.id)} className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all ${c.lastUrgedAt ? 'bg-emerald-600 text-white' : 'bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-600 hover:text-white'} `}>
                           {c.lastUrgedAt ? 'ĐÃ NHẮC' : 'ĐÔN ĐỐC'}
                         </button>
                       </div>
@@ -808,7 +808,7 @@ const Operations: React.FC<OperationsProps> = ({
                   {warnings.pendingTk.map(c => (
                     <div key={c.id} className="p-4 bg-amber-50/50 border border-amber-100 rounded-2xl flex justify-between items-center group hover:bg-amber-100/50 transition-all">
                       <div><p className="font-black text-slate-800 text-sm uppercase">{c.containerNo}</p><p className="text-[9px] font-bold text-amber-600 uppercase mt-1">Chủ hàng: {vessels.find(v => v.id === c.vesselId)?.consignee}</p></div>
-                      <button onClick={() => handleUrge(c.id)} className={`px - 3 py - 1.5 rounded - xl text - [9px] font - black uppercase transition - all ${ c.lastUrgedAt ? 'bg-emerald-600 text-white' : 'bg-white border border-amber-200 text-amber-600 hover:bg-amber-600 hover:text-white' } `}>
+                      <button onClick={() => handleUrge(c.id)} className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all ${c.lastUrgedAt ? 'bg-emerald-600 text-white' : 'bg-white border border-amber-200 text-amber-600 hover:bg-amber-600 hover:text-white'} `}>
                         {c.lastUrgedAt ? 'ĐÃ NHẮC' : 'ĐÔN ĐỐC'}
                       </button>
                     </div>
@@ -821,10 +821,10 @@ const Operations: React.FC<OperationsProps> = ({
       }
 
       <style>{`
-  .custom - scrollbar:: -webkit - scrollbar { width: 4px; }
-        .custom - scrollbar:: -webkit - scrollbar - thumb { background: #cbd5e1; border - radius: 10px; }
+  .custom-scrollbar:: -webkit-scrollbar { width: 4px; }
+        .custom-scrollbar:: -webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate - slideUp { animation: slideUp 0.4s cubic - bezier(0.16, 1, 0.3, 1); }
+        .animate-slideUp { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
 `}</style>
     </div >
   );
