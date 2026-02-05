@@ -1014,47 +1014,7 @@ const TallyReportView: React.FC<TallyReportViewProps> = ({ vessel, shift, mode, 
             </div>
 
             {/* PROOF IMAGE UPLOAD SECTION */}
-            <div className={`p-4 rounded-3xl border-2 ${proofImage ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-gray-100'}`}>
-              <div className="flex justify-between items-center mb-3">
-                <h4 className="text-sm font-black text-gray-700 uppercase flex items-center gap-2">
-                  <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                  Ảnh Báo Cáo Minh Chứng
-                </h4>
-                {/* Only required if policy says so, for now optional but recommended */}
-                <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-1 rounded">Minh chứng (Tùy chọn)</span>
-              </div>
 
-              <div className="flex gap-4 items-center">
-                <label className="flex-1 cursor-pointer">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleProofImageUpload}
-                    disabled={isUploadingProof}
-                  />
-                  <div className={`h-24 rounded-2xl border-2 border-dashed flex items-center justify-center transition-all ${isUploadingProof ? 'bg-gray-100 text-gray-400' : 'hover:bg-indigo-50 hover:border-indigo-300'}`}>
-                    {isUploadingProof ? (
-                      <span className="text-xs font-bold animate-pulse">Đang tải lên...</span>
-                    ) : (
-                      <span className="text-xs font-bold text-gray-400 uppercase text-center">Chạm để chụp/tải ảnh báo cáo</span>
-                    )}
-                  </div>
-                </label>
-
-                {proofImage && (
-                  <div className="relative h-24 w-24 rounded-2xl overflow-hidden shadow-lg border border-gray-200 group shrink-0">
-                    <img src={proofImage} alt="Proof" className="w-full h-full object-cover" />
-                    <button
-                      onClick={() => setProofImage(null)}
-                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 shadow-md active:scale-95"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
 
           </div>
         )}

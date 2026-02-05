@@ -255,7 +255,8 @@ export const db = {
         createdAt:created_at,
         proofImageUrl:proof_image_url,
         tally_items (
-          is_scratched_floor, torn_units, notes
+          is_scratched_floor, torn_units, notes,
+          photos, transport_vehicle, seal_count
         )
       `)
             .order('created_at', { ascending: false });

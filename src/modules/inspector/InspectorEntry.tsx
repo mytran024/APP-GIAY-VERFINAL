@@ -313,10 +313,15 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
           );
 
           if (existingCont) {
-            // Append new Proof Image if exists
+            // Append new Proof Image if exists (FROM ITEM PHOTOS)
             const currentImages = existingCont.images || [];
-            if (r.proofImageUrl && !currentImages.includes(r.proofImageUrl)) {
-              currentImages.push(r.proofImageUrl);
+            // Sync photos from the Tally Item to the Logistics Container
+            if (item.photos && item.photos.length > 0) {
+              item.photos.forEach(p => {
+                if (!currentImages.includes(p)) {
+                  currentImages.push(p);
+                }
+              });
             }
 
             // Update fields
