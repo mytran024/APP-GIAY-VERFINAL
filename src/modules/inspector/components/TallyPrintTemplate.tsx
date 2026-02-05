@@ -88,6 +88,9 @@ const TallyPrintTemplate: React.FC<TallyPrintTemplateProps> = ({ report, vessel,
           .page-break { 
             page-break-after: always; 
           }
+          .page-break:last-of-type {
+            page-break-after: auto;
+          }
         }
       `}</style>
 

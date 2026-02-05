@@ -483,9 +483,18 @@ export const CustomsView: React.FC<CustomsViewProps> = ({ vessels, csContainers,
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return '';
-    const parts = dateStr.split('-');
-    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    return dateStr;
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return dateStr;
+
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+      const year = date.getFullYear();
+
+      return `${day}/${month}/${year}`;
+    } catch (e) {
+      return dateStr;
+    }
   };
 
   const sealAnalysis = useMemo(() => {
@@ -582,13 +591,9 @@ export const CustomsView: React.FC<CustomsViewProps> = ({ vessels, csContainers,
   };
 
   const handleInputFocus = (containerId: string) => {
-    // If multiple items are selected, and we focus on a specific "unique" field (Seal/Packages),
-    // we want to drop the selection to JUST this item to prevent accidental bulk overwrite.
-    if (selectedContainerIds.size > 1 && selectedContainerIds.has(containerId)) {
-      const newSet = new Set<string>();
-      newSet.add(containerId);
-      setSelectedContainerIds(newSet);
-    }
+    // PREVIOUSLY: Cleared selection to prevent accidental overwrite.
+    // NOW: Removed to allow Bulk Edit / Bulk Paste on selected rows.
+    // The selection is already handled by handleMouseDown.
   };
 
   return (
@@ -981,7 +986,13 @@ export const CustomsView: React.FC<CustomsViewProps> = ({ vessels, csContainers,
                                 readOnly
                               />
                             </td>
-                            <td className="px-4 py-2 font-mono font-medium text-slate-700">{container.id}</td>
+                            <td
+                              className="px-4 py-2 font-mono font-medium text-slate-700 cursor-default select-none"
+                              onMouseDown={() => handleMouseDown(container.id)}
+                              onMouseEnter={() => handleMouseEnter(container.id)}
+                            >
+                              {container.id}
+                            </td>
                             <td className="p-1 border-l border-slate-100">
                               <input
                                 type="text"

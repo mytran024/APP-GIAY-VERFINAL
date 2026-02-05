@@ -186,10 +186,8 @@ const CompletionView: React.FC<CompletionViewProps> = ({ workOrders, reports, on
         @media print {
           @page { size: portrait; margin: 10mm; }
           .print\\:hidden { display: none !important; }
-          .print-wo-document, .print-document { 
             display: block !important; 
             width: 100% !important; 
-            page-break-after: always;
             margin-bottom: 0 !important;
             box-shadow: none !important;
             border: none !important;
