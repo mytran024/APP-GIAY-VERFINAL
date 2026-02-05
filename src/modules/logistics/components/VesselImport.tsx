@@ -4,6 +4,7 @@ import { Vessel, Container, ContainerStatus, BusinessType, TransportVehicle, Uni
 import { ICONS } from '../constants';
 import { displayDate, processImportData, checkDetentionStatus } from '../services/dataService';
 import { StorageService } from '../../../services/storage';
+import { db } from '../../../services/db'; // Import DB
 import { Role } from '../../../types';
 import * as XLSX from 'xlsx';
 import { User, Calendar, Trash, Edit, Plus, ChevronDown } from 'lucide-react';
@@ -311,12 +312,26 @@ const VesselImport: React.FC<VesselImportProps> = ({
         etd: newVessel.etd || v.etd
       } : v);
       onUpdateVessels(updatedVessels);
+
+      // SUPABASE SAVE
+      db.upsertVessel(updatedVessels.find(v => v.id === selectedVesselId)!).then(res => {
+        if (!res) alert("Lưu dữ liệu lên Cloud thất bại!");
+      });
+
       setShowVesselModal(false);
       setNewVessel({ vesselName: '', commodity: DEFAULT_COMMODITY, consignee: '', voyageNo: '', eta: '', etd: '' });
       setIsEditMode(false);
     } else {
       // Create Mode to ensure fresh state
-      const id = `v_${Math.random().toString(36).substr(2, 5)}`;
+      // Ensure ID is UUID if possible, but keep random string if simpler for now. 
+      // Supabase default is uuid_generate_v4() if we pass nothing, but interface needs ID.
+      // Let's rely on DB generating ID if we pass undefined, but our Type requires ID.
+      // We'll generate a temp ID for UI and let DB handle or just use this random string (it fits UUID column if we cast? No, random string 'v_...' is not UUID)
+      // FIX: We must use a valid UUID or existing format.
+      // For migration speed, schema says ID is UUID. 'v_...' will FAIL.
+      // We should use crypto.randomUUID() if available or a placeholder.
+      const id = crypto.randomUUID ? crypto.randomUUID() : `v_${Math.random().toString(36).substr(2, 5)}`;
+
       const vessel: Vessel = {
         ...newVessel,
         id,
@@ -328,7 +343,18 @@ const VesselImport: React.FC<VesselImportProps> = ({
         totalWeight: 0,
         exportPlanActive: false
       } as Vessel;
+
+      // Optimistic UI Update
       onUpdateVessels([...vessels, vessel]);
+
+      // SUPABASE SAVE
+      db.upsertVessel(vessel).then(saved => {
+        if (!saved) {
+          alert("Lỗi lưu tàu mới lên Cloud!");
+        } else {
+          // Optional: Update with real ID from DB if we wanted strict UUIDs
+        }
+      });
 
       StorageService.addNotification({
         title: "TÀU MỚI: " + vessel.vesselName,
@@ -382,6 +408,14 @@ const VesselImport: React.FC<VesselImportProps> = ({
 
       const targetVessel = vessels.find(vel => vel.id === modalSelections.vesselId);
       if (targetVessel) {
+        // Prepare updated object for DB (merging changes)
+        const dbVessel = updatedVessels.find(v => v.id === modalSelections.vesselId);
+        if (dbVessel) {
+          db.upsertVessel(dbVessel).then(res => {
+            if (!res) alert("Lưu thông tin Tàu Xuất lên Cloud thất bại!");
+          });
+        }
+
         StorageService.addNotification({
           title: "LỆNH TÀU XUẤT",
           message: `CS đã thông báo kế hoạch xuất cho tàu ${exportPlanForm.exportVesselName || targetVessel.vesselName}. Dự kiến: ${exportPlanForm.arrivalTime ? new Date(exportPlanForm.arrivalTime).toLocaleDateString('vi-VN') : 'N/A'}`,
@@ -410,6 +444,11 @@ const VesselImport: React.FC<VesselImportProps> = ({
       // Remove vessel
       const updatedVessels = vessels.filter(v => v.id !== selectedVesselId);
       onUpdateVessels(updatedVessels);
+
+      // SUPABASE DELETE
+      db.deleteVessel(selectedVesselId).then(success => {
+        if (!success) alert("Xoá tàu trên Cloud thất bại (Có thể do còn Containers phụ thuộc)");
+      });
 
       // Remove associated containers
       const updatedContainers = containers.filter(c => c.vesselId !== selectedVesselId);

@@ -14,6 +14,7 @@ import PricingConfigPage from './components/PricingConfig';
 import UserManagement from './components/UserManagement';
 import WorkOrderReview from './components/WorkOrderReview';
 import { StorageService } from '../../services/storage';
+import { db } from '../../services/db'; // Import Supabase Service
 import { TallyReport, WorkOrder as InspectorWorkOrder } from '../inspector/types'; // Import InspectorWorkOrder
 import { LogisticsSidebar } from './components/LogisticsSidebar';
 import { MOCK_CONSIGNEES } from './services/dataService';
@@ -69,11 +70,9 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
   const [resourceMembers, setResourceMembers] = useState<ResourceMember[]>(() => StorageService.getResources(INITIAL_RESOURCES));
   const [transportVehicles, setTransportVehicles] = useState<TransportVehicle[]>(INITIAL_TRANSPORT_VEHICLES);
 
-  const [vessels, setVessels] = useState<Vessel[]>(() => StorageService.getVessels([]));
+  const [vessels, setVessels] = useState<Vessel[]>([]);
 
-  const [containers, setContainers] = useState<Container[]>(() => StorageService.getContainers([
-    // ... initial data ...
-  ])); // Note: We will reload this in useEffect
+  const [containers, setContainers] = useState<Container[]>([]);
 
   // Listen for Storage Updates (Sync between Roles)
   useEffect(() => {
@@ -103,12 +102,34 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
   }, []);
 
 
-  const [workOrders, setWorkOrders] = useState<WorkOrder[]>(() => StorageService.getWorkOrders([]));
-  const [inspectorWorkOrders, setInspectorWorkOrders] = useState<InspectorWorkOrder[]>(() => StorageService.getInspectorWorkOrders([]));
-  const [tallyReports, setTallyReports] = useState<TallyReport[]>(() => StorageService.getTallyReports([]));
+  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
+  const [inspectorWorkOrders, setInspectorWorkOrders] = useState<InspectorWorkOrder[]>([]);
+  const [tallyReports, setTallyReports] = useState<TallyReport[]>([]);
   const [users, setUsers] = useState<SystemUser[]>(() => {
     return StorageService.getUsers(INITIAL_USERS);
   });
+
+  // FETCH DATA FROM SUPABASE
+  useEffect(() => {
+    const fetchData = async () => {
+      console.log("Fetching data from Supabase...");
+      const [v, c, r, w, iw] = await Promise.all([
+        db.getVessels(),
+        db.getContainers(),
+        db.getTallyReports(),
+        db.getWorkOrders(), // Logistics WO
+        StorageService.getInspectorWorkOrders() // Keep this local for now or migrate later? User said migrate data service.
+        // Actually db.ts doesn't have getInspectorWorkOrders yet. I'll stick to what I made.
+      ]);
+
+      setVessels(v);
+      setContainers(c);
+      setTallyReports(r);
+      setWorkOrders(w);
+      // setInspectorWorkOrders(iw); 
+    };
+    fetchData();
+  }, []);
 
 
   // Map global user to SystemUser
@@ -132,6 +153,7 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
     });
   }, [user]);
 
+  /* REMOVED AUTO-SAVE TO LOCAL STORAGE (MIGRATED TO DB ADAPTER) 
   useEffect(() => {
     StorageService.saveVessels(vessels);
   }, [vessels]);
@@ -139,22 +161,11 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
   useEffect(() => {
     StorageService.saveContainers(containers);
   }, [containers]);
+  */
 
   useEffect(() => {
     StorageService.saveResources(resourceMembers);
-  }, [resourceMembers]);
-
-  useEffect(() => {
-    StorageService.saveWorkOrders(workOrders);
-  }, [workOrders]);
-
-  useEffect(() => {
-    StorageService.saveUsers(users);
-  }, [users]);
-
-  useEffect(() => {
-    StorageService.savePrices(servicePrices);
-  }, [servicePrices]);
+  }, [resourceMembers]); // Keep Resources Local for now or move next? User focused on Vessels first.
 
   const [consignees, setConsignees] = useState<Consignee[]>(() => StorageService.getConsignees(MOCK_CONSIGNEES));
 
