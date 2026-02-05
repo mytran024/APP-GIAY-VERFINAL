@@ -130,6 +130,15 @@ export interface WorkOrder {
   shift: string;
   date: string;
   items: any[];
+
+  // Specific Fields (Inspector)
+  handlingMethod?: string;
+  commodityType?: string;
+  specification?: string;
+  quantity?: number;
+  weight?: number;
+  dayLaborerCount?: number;
+  note?: string;
   status: WorkOrderStatus;
   isHoliday?: boolean;
   isWeekend?: boolean;

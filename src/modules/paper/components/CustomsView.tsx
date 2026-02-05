@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Vessel, ContainerCS, SealData, VesselStatus } from '../types';
 import { AlertOctagon, CheckCircle, Shield, Plus, Hash, Trash2, AlertTriangle, Save, RefreshCw, X, AlertCircle, ArrowRight, Calendar } from 'lucide-react';
 import { StorageService } from '../../../services/storage';
+import { db } from '../../../services/db'; // Import DB
 import { Role } from '../../../types';
 
 interface CustomsViewProps {
@@ -67,8 +68,10 @@ export const CustomsView: React.FC<CustomsViewProps> = ({ vessels, csContainers,
   // -- Seal Data Persistence --
   const [allSeals, setAllSeals] = useState<SealData[]>([]);
 
+  const [allSeals, setAllSeals] = useState<SealData[]>([]);
+
   useEffect(() => {
-    setAllSeals(StorageService.getSeals());
+    db.getSeals().then(setAllSeals);
   }, []);
 
   // FIX: Reset selectedVesselId when switching tabs (IMPORT <-> EXPORT)
@@ -551,7 +554,8 @@ export const CustomsView: React.FC<CustomsViewProps> = ({ vessels, csContainers,
 
     const updatedSeals = [...allSeals, ...newSeals];
     setAllSeals(updatedSeals);
-    StorageService.saveSeals(updatedSeals);
+    // DB Save
+    db.upsertSeals(updatedSeals).catch(console.error);
 
     // DEBUG: Log seals after saving
     console.log('[DEBUG Customs] Saved Seals:', updatedSeals);
@@ -574,7 +578,7 @@ export const CustomsView: React.FC<CustomsViewProps> = ({ vessels, csContainers,
   const handleDeleteSeal = (id: string) => {
     const updatedSeals = allSeals.filter(s => s.id !== id);
     setAllSeals(updatedSeals);
-    StorageService.saveSeals(updatedSeals);
+    db.deleteSeal(id).catch(console.error);
   };
 
   const handleInputFocus = (containerId: string) => {

@@ -3,6 +3,7 @@ import { Vessel, Vehicle, VesselStatus } from '../types';
 import { MOCK_EXPORT_TALLIES } from '../constants';
 import { Truck, Plus, User, Edit2, Trash2, X, Save, FileSpreadsheet, Ban, CheckCircle, RotateCcw, AlertTriangle, AlertCircle, Info } from 'lucide-react';
 import { StorageService } from '../../../services/storage';
+import { db } from '../../../services/db'; // Import DB
 import { Role } from '../../../types';
 
 interface TransportViewProps {
@@ -24,7 +25,11 @@ export const TransportView: React.FC<TransportViewProps> = ({ vessels }) => {
   // Note: tripsCompleted in the initial state is now ignored/legacy.
   // The UI calculates it dynamically from MOCK_EXPORT_TALLIES.
   // Load Global Vehicles
-  const [allVehicles, setAllVehicles] = useState<Vehicle[]>(() => StorageService.getExportVehicles([]));
+  const [allVehicles, setAllVehicles] = useState<Vehicle[]>([]);
+
+  React.useEffect(() => {
+    db.getTransportVehicles().then(setAllVehicles);
+  }, []);
 
   // Filter for current vessel
   const vehicles = allVehicles.filter(v => v.vesselId === selectedVesselId);
@@ -82,7 +87,16 @@ export const TransportView: React.FC<TransportViewProps> = ({ vessels }) => {
     }
 
     setAllVehicles(updatedList);
-    StorageService.saveExportVehicles(updatedList);
+    setAllVehicles(updatedList);
+    // Auto save the specific one being modified/added to DB
+    if (editingId) {
+      const vehicle = updatedList.find(v => v.id === editingId);
+      if (vehicle) db.upsertTransportVehicle(vehicle);
+    } else {
+      // Find the new one (last one) or just save the one we created
+      const newVehicle = updatedList[updatedList.length - 1]; // Naive but works as we just appended
+      if (newVehicle) db.upsertTransportVehicle(newVehicle);
+    }
   };
 
   const handleEdit = (vehicle: Vehicle) => {
@@ -197,7 +211,14 @@ export const TransportView: React.FC<TransportViewProps> = ({ vessels }) => {
     }
 
     setAllVehicles(updatedList);
-    StorageService.saveExportVehicles(updatedList);
+    setAllVehicles(updatedList);
+
+    if (type === 'DELETE') {
+      db.deleteTransportVehicle(vehicle.id);
+    } else {
+      const updated = updatedList.find(v => v.id === vehicle.id);
+      if (updated) db.upsertTransportVehicle(updated);
+    }
 
     setConfirmModal(null);
   };
@@ -236,7 +257,7 @@ export const TransportView: React.FC<TransportViewProps> = ({ vessels }) => {
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
               <h3 className={`text-lg font-bold ${confirmModal.type === 'DELETE' ? 'text-red-600' :
-                  confirmModal.type === 'DEACTIVATE' ? 'text-orange-600' : 'text-blue-600'
+                confirmModal.type === 'DEACTIVATE' ? 'text-orange-600' : 'text-blue-600'
                 }`}>
                 {confirmModal.title}
               </h3>
@@ -257,7 +278,7 @@ export const TransportView: React.FC<TransportViewProps> = ({ vessels }) => {
               <button
                 onClick={handleConfirmAction}
                 className={`px-4 py-2 text-sm font-medium text-white rounded-lg shadow-sm flex items-center ${confirmModal.type === 'DELETE' ? 'bg-red-600 hover:bg-red-700' :
-                    confirmModal.type === 'DEACTIVATE' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-600 hover:bg-blue-700'
+                  confirmModal.type === 'DEACTIVATE' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-600 hover:bg-blue-700'
                   }`}
               >
                 {confirmModal.type === 'DELETE' && <Trash2 size={16} className="mr-2" />}

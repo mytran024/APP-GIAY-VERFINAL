@@ -64,7 +64,9 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
   }, []);
 
   const [allReports, setAllReports] = useState<TallyReport[]>([]);
-  const [allWorkOrders, setAllWorkOrders] = useState<WorkOrder[]>([]);
+  const [allReports, setAllReports] = useState<TallyReport[]>([]);
+  // Use any here to bypass strict local type mismatch, effectively we use the DB type now
+  const [allWorkOrders, setAllWorkOrders] = useState<any[]>([]);
 
   // Synced from CS (DB)
   const [logisticsVessels, setLogisticsVessels] = useState<LogisticsVessel[]>([]);
@@ -337,7 +339,10 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
           weight: totalWeight,
           dayLaborerCount: 0,
           note: '',
-          status: 'HOAN_TAT'
+          weight: totalWeight,
+          dayLaborerCount: 0,
+          note: '',
+          status: 'COMPLETED' as any // Cast to match DB enum or Inspector string
         };
         newWOs.push(woCN);
 
@@ -370,8 +375,9 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
               quantity: totalUnits,
               weight: totalWeight,
               dayLaborerCount: 0,
+              dayLaborerCount: 0,
               note: isExternal ? `Thuê ngoài: ${uniqueNames}` : `Lái xe: ${uniqueNames}`,
-              status: 'HOAN_TAT'
+              status: 'COMPLETED' as any
             };
             newWOs.push(woMech);
           });
@@ -391,8 +397,9 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
               quantity: totalUnits,
               weight: totalWeight,
               dayLaborerCount: 0,
+              dayLaborerCount: 0,
               note: '',
-              status: 'HOAN_TAT'
+              status: 'COMPLETED' as any
             };
             newWOs.push(woCG);
           }

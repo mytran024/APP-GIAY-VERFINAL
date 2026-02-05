@@ -360,6 +360,13 @@ export const db = {
         shift,
         date,
         items,
+        handlingMethod:handling_method,
+        commodityType:commodity_type,
+        specification:specification,
+        quantity,
+        weight,
+        dayLaborerCount:day_laborer_count,
+        note,
         isHoliday:is_holiday,
         isWeekend:is_weekend,
         isOutsourced:is_outsourced
@@ -379,7 +386,7 @@ export const db = {
             type: wo.type,
             business_type: wo.businessType,
             status: wo.status,
-            team_name: wo.teamName,
+            team_name: wo.teamName, // mapped to team_name (organization)
             worker_names: wo.workerNames,
             people_count: wo.peopleCount || 0,
             vehicle_nos: wo.vehicleNos,
@@ -388,7 +395,17 @@ export const db = {
             container_nos: wo.containerNos,
             shift: wo.shift,
             date: wo.date || null,
-            items: wo.items, // JSONB
+            items: wo.items,
+
+            // New Inspector Fields
+            handling_method: wo.handlingMethod,
+            commodity_type: wo.commodityType,
+            specification: wo.specification,
+            quantity: wo.quantity,
+            weight: wo.weight,
+            day_laborer_count: wo.dayLaborerCount,
+            note: wo.note,
+
             is_holiday: wo.isHoliday,
             is_weekend: wo.isWeekend,
             is_outsourced: wo.isOutsourced,

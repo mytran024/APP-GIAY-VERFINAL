@@ -11,7 +11,7 @@ import { MOCK_VESSELS } from './constants';
 
 import { Bell, Check, Trash2, LogOut } from 'lucide-react';
 import { User as GlobalUser, Role as GlobalRole } from '../../types';
-import { StorageService } from '../../services/storage';
+import { db } from '../../services/db'; // Import DB
 import { Container as GlobalContainer, ContainerStatus } from '../../modules/logistics/types';
 
 interface PaperProps {
@@ -40,10 +40,14 @@ const PaperEntry: React.FC<PaperProps> = ({ user: globalUser, onLogout }) => {
 
   useEffect(() => {
     // Load initial data
-    const loadData = () => {
-      setGlobalContainers(StorageService.getContainers());
+    const loadData = async () => {
+      const [containers, vessels] = await Promise.all([
+        db.getContainers(),
+        db.getVessels()
+      ]);
 
-      const vessels = StorageService.getVessels();
+      setGlobalContainers(containers);
+
       const mappedVessels = vessels.map(v => ({
         id: v.id,
         name: v.vesselName,
@@ -121,26 +125,33 @@ const PaperEntry: React.FC<PaperProps> = ({ user: globalUser, onLogout }) => {
 
   // Handler for Customs saving data
   const handleSaveCustomsData = (dataMap: Record<string, any>) => {
+    let hasChanges = false;
     const updatedGlobalContainers = globalContainers.map(c => {
-      // Find update by containerNo (since containers[].id is containerNo)
       const update = dataMap[c.containerNo]; // Map using Container No
       if (update) {
-        return {
+        hasChanges = true;
+        const updatedContainer = {
           ...c,
           sealNo: update.sealNo,
           tkDnlOla: update.dnlDeclNo,
           ngayTkDnl: update.dnlDeclDate,
           tkNhaVC: update.transportDeclNo, // Save Number
           ngayTkNhaVC: update.ngayTkNhaVC, // Save Date
-          customsPkgs: update.packages ? Number(update.packages) : undefined,
-          customsWeight: update.tons ? Number(update.tons) : undefined
+          // Avoid overwriting with undefined if not present in update
+          customsPkgs: update.packages ? Number(update.packages) : c.customsPkgs,
+          customsWeight: update.tons ? Number(update.tons) : c.customsWeight
         };
+
+        // Save to DB immediately (async)
+        db.upsertContainer(updatedContainer).catch(console.error);
+        return updatedContainer;
       }
       return c;
     });
 
-    setGlobalContainers(updatedGlobalContainers);
-    StorageService.saveContainers(updatedGlobalContainers);
+    if (hasChanges) {
+      setGlobalContainers(updatedGlobalContainers);
+    }
   };
 
 
@@ -152,11 +163,13 @@ const PaperEntry: React.FC<PaperProps> = ({ user: globalUser, onLogout }) => {
 
     setGlobalContainers(prev => prev.map(c => {
       if (c.containerNo === containerId) { // Match by Container No
-        return {
+        const updated = {
           ...c,
           status: ContainerStatus.ISSUE, // Mark as ISSUE
-          // remarks: reason // Optional: save reason to remarks?
         };
+        // DB Save
+        db.upsertContainer(updated).catch(console.error);
+        return updated;
       }
       return c;
     }));
