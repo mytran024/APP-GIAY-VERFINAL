@@ -11,6 +11,31 @@ interface VesselSelectionViewProps {
 const VesselSelectionView: React.FC<VesselSelectionViewProps> = ({ vessels = [], onSelect }) => {
   const [selectedVesselId, setSelectedVesselId] = useState<string>('');
 
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '??';
+
+    // Handle corrupted legacy format (e.g. 02T00:00:00+00:00/02/2026)
+    if (dateStr.includes('T') && dateStr.includes('/') && dateStr.length > 20) {
+      const match = dateStr.match(/^(\d{2})T.*\/(\d{2})\/(\d{4})$/);
+      if (match) {
+        return `${match[1]}/${match[2]}/${match[3]}`;
+      }
+    }
+
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return dateStr;
+
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+
+      return `${day}/${month}/${year}`;
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
   const getCurrentShift = (): Shift => {
     const hour = new Date().getHours();
     if (hour >= 0 && hour < 6) return Shift.SHIFT_1;
@@ -83,7 +108,7 @@ const VesselSelectionView: React.FC<VesselSelectionViewProps> = ({ vessels = [],
                 <option value="" disabled>-- Bấm để chọn tàu --</option>
                 {vessels.map(v => (
                   <option key={v.id} value={v.id} disabled={v.isBlocked}>
-                    {v.name} {v.isBlocked ? `(ĐANG CHỜ DỮ LIỆU: ${v.blockReason})` : `| ${v.eta} - ${v.etd || '...'}`}
+                    {v.name} {v.isBlocked ? `(ĐANG CHỜ DỮ LIỆU: ${v.blockReason})` : `| ${formatDate(v.eta)} - ${formatDate(v.etd)}`}
                   </option>
                 ))}
               </select>

@@ -255,8 +255,7 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
       createSubReports(groupedItems.container, 'CONTAINER');
       createSubReports(groupedItems.flatbed, 'XE_THOT');
 
-      createSubReports(groupedItems.container, 'CONTAINER');
-      createSubReports(groupedItems.flatbed, 'XE_THOT');
+
 
       // Update Local State
       setAllReports(prev => [...finalReports, ...prev]);

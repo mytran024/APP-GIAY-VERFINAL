@@ -14,7 +14,7 @@ const TallyPrintTemplate: React.FC<TallyPrintTemplateProps> = ({ report, vessel,
   const items = report.items || [];
   const totalPages = Math.max(1, Math.ceil(items.length / ITEMS_PER_PAGE));
 
-  const today = new Date(report.createdAt || Date.now());
+  const today = report.workDate ? new Date(report.workDate) : new Date(report.createdAt || Date.now());
   const dateStr = today.getDate().toString().padStart(2, '0');
   const monthStr = (today.getMonth() + 1).toString().padStart(2, '0');
   const yearStr = today.getFullYear().toString();
