@@ -254,13 +254,9 @@ export const db = {
         createdAt:created_at,
         proofImageUrl:proof_image_url,
         tally_items (
-          id, cont_id, cont_no, size, commodity_type, seal_no, actual_units, actual_weight,
-                // transport_vehicle, 
-                // seal_count, 
-                // photos
-                // notes (Try excluding notes too if they are new)
-            )
-        `)
+          is_scratched_floor, torn_units, notes
+        )
+      `)
             .order('created_at', { ascending: false });
 
         if (error) {
