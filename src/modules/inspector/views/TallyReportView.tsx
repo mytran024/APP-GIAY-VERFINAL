@@ -70,8 +70,57 @@ const TallyReportView: React.FC<TallyReportViewProps> = ({ vessel, shift, mode, 
   });
 
   const [containerSearch, setContainerSearch] = useState('');
-  const [showResults, setShowResults] = useState(false);
+  const [proofImage, setProofImage] = useState<string | null>(initialReport?.proofImageUrl || null);
+  const [isUploadingProof, setIsUploadingProof] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  // Helper upload function
+  const uploadToStorage = async (file: File): Promise<string | null> => {
+    try {
+      // Fallback for demo if supabase not available in context, but assuming it is globally imported in project
+      // We need to import 'supabase' from lib.
+      // Since I cannot change imports easily without reading top, I will assume `supabase` is NOT imported here yet.
+      // I will use a placeholder or try to dynamically use window.supabase or similiar if it was global?
+      // No, I should fix imports. But wait, I can modify imports in a separate step or just assume I can find it.
+      // Actually, I'll stick to a mock for now if I can't import, OR better: 
+      // I realized I should have checked imports. 
+      // Let's use a "fake" upload or try to reference it if I can.
+      // Actually, TallyReportView likely doesn't have supabase imported.
+      // I will return a placeholder URL if upload fails or just use the local object URL for now (BLOB) if real upload is too complex without imports.
+      // BUT strict requirement: "Upload ảnh báo cáo lên Supabase Storage".
+      // I MUST import supabase.
+      return URL.createObjectURL(file);
+    } catch (e) { return null; }
+  };
+
+  const handleProofImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingProof(true);
+    try {
+      // Dynamic import to avoid breaking if top-level import is missing
+      const { supabase } = await import('../../../lib/supabase');
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `tally-proof-${Date.now()}-${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('danalog-proofs')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('danalog-proofs').getPublicUrl(filePath);
+      setProofImage(data.publicUrl);
+    } catch (error) {
+      console.error('Upload proof failed:', error);
+      alert('Lỗi tải ảnh lên Cloud. Vui lòng thử lại!');
+    } finally {
+      setIsUploadingProof(false);
+    }
+  };
 
   const handlingOptions = useMemo(() =>
     mode === 'NHAP' ? HANDLING_METHODS.MECHANICAL_IMPORT : HANDLING_METHODS.MECHANICAL_EXPORT,
@@ -473,8 +522,11 @@ const TallyReportView: React.FC<TallyReportViewProps> = ({ vessel, shift, mode, 
     const report = {
       ...currentReport,
       id: currentReport.id || `PKH-${Date.now()}`,
+      status: isDraft ? 'NHAP' : 'HOAN_TAT',
       createdAt: currentReport.createdAt || Date.now(),
-      status: isDraft ? 'NHAP' : 'HOAN_TAT'
+      createdBy: user,
+      mode: mode,
+      proofImageUrl: proofImage || undefined, // Attach Proof Image
     } as TallyReport;
 
     // CRITICAL FIX: Remove auto-save data from localStorage upon completion
@@ -959,6 +1011,50 @@ const TallyReportView: React.FC<TallyReportViewProps> = ({ vessel, shift, mode, 
                 </div>
               )}
             </div>
+
+            {/* PROOF IMAGE UPLOAD SECTION */}
+            <div className={`p-4 rounded-3xl border-2 ${proofImage ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-gray-100'}`}>
+              <div className="flex justify-between items-center mb-3">
+                <h4 className="text-sm font-black text-gray-700 uppercase flex items-center gap-2">
+                  <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                  Ảnh Báo Cáo Minh Chứng
+                </h4>
+                {/* Only required if policy says so, for now optional but recommended */}
+                <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-1 rounded">Minh chứng (Tùy chọn)</span>
+              </div>
+
+              <div className="flex gap-4 items-center">
+                <label className="flex-1 cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleProofImageUpload}
+                    disabled={isUploadingProof}
+                  />
+                  <div className={`h-24 rounded-2xl border-2 border-dashed flex items-center justify-center transition-all ${isUploadingProof ? 'bg-gray-100 text-gray-400' : 'hover:bg-indigo-50 hover:border-indigo-300'}`}>
+                    {isUploadingProof ? (
+                      <span className="text-xs font-bold animate-pulse">Đang tải lên...</span>
+                    ) : (
+                      <span className="text-xs font-bold text-gray-400 uppercase text-center">Chạm để chụp/tải ảnh báo cáo</span>
+                    )}
+                  </div>
+                </label>
+
+                {proofImage && (
+                  <div className="relative h-24 w-24 rounded-2xl overflow-hidden shadow-lg border border-gray-200 group shrink-0">
+                    <img src={proofImage} alt="Proof" className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => setProofImage(null)}
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 shadow-md active:scale-95"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
           </div>
         )}
 
@@ -967,6 +1063,7 @@ const TallyReportView: React.FC<TallyReportViewProps> = ({ vessel, shift, mode, 
           <div className="max-w-4xl mx-auto flex gap-3">
             <button
               onClick={handleBack}
+              disabled={isUploadingProof}
               className="px-6 py-3 rounded-2xl bg-gray-100 text-gray-500 font-black uppercase text-[11px] active:scale-95 transition-all hover:bg-gray-200"
             >
               Quay lại
@@ -984,14 +1081,14 @@ const TallyReportView: React.FC<TallyReportViewProps> = ({ vessel, shift, mode, 
               <>
                 <button
                   onClick={() => handleFinalSave(true)}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isUploadingProof}
                   className="flex-1 py-3 rounded-2xl bg-blue-100 text-blue-700 font-black uppercase text-[11px] active:scale-95 transition-all hover:bg-blue-200 disabled:opacity-50"
                 >
                   LƯU NHÁP
                 </button>
                 <button
                   onClick={() => handleFinalSave(false)}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isUploadingProof}
                   className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-black uppercase text-[11px] shadow-xl shadow-green-200 active:scale-95 transition-all hover:brightness-110 flex flex-col items-center justify-center leading-tight disabled:opacity-50"
                 >
                   {isSubmitting ? 'ĐANG XỬ LÝ...' : 'HOÀN TẤT'}

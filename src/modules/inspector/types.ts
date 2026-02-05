@@ -58,6 +58,9 @@ export interface TallyReport {
   mechanicalCount: number;
   mechanicalNames: string; // Giữ lại để backward compatibility hiển thị
 
+  // Ảnh báo cáo minh chứng (toàn phiếu)
+  proofImageUrl?: string;
+
   // Cơ giới ngoài
   externalMechanicalCount?: number;
 

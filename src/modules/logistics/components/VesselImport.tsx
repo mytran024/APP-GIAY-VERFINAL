@@ -63,6 +63,9 @@ const IMPORT_COLUMNS: ColumnConfig[] = [
   { id: 'detExpiry', label: 'HẠN DET', width: 90 },
   { id: 'noiHaRong', label: 'NƠI HẠ RỖNG', width: 120 },
   { id: 'status', label: 'TRẠNG THÁI', width: 130 },
+  { id: 'inspector', label: 'KIỂM VIÊN', width: 100 },
+  { id: 'shift', label: 'CA', width: 50 },
+  { id: 'images', label: 'ẢNH', width: 50 },
   { id: 'actions', label: 'THAO TÁC', width: 80 },
 ];
 
@@ -72,6 +75,10 @@ const EXPORT_COLUMNS: ColumnConfig[] = [
   { id: 'truckReg', label: 'ĐĂNG KIỂM', width: 85 },
   { id: 'romocNo', label: 'SỐ MOOC', width: 100 },
   { id: 'romocReg', label: 'ĐĂNG KIỂM', width: 85 },
+  { id: 'status', label: 'TRẠNG THÁI', width: 110 }, // Added Status
+  { id: 'inspector', label: 'KIỂM VIÊN', width: 100 },
+  { id: 'shift', label: 'CA', width: 50 },
+  { id: 'images', label: 'ẢNH', width: 50 },
   { id: 'driverName', label: 'LÁI XE', width: 150 },
   { id: 'idCard', label: 'CCCD', width: 120 },
   { id: 'phone', label: 'SĐT', width: 100 },
@@ -944,6 +951,15 @@ const VesselImport: React.FC<VesselImportProps> = ({
                         <td className="px-4 py-3 text-center text-slate-500">{c.noiHaRong}</td>
                         <td className="px-4 py-3 text-center">
                           <StatusBadge status={isMismatch ? ContainerStatus.MISMATCH : c.status} />
+                        </td>
+                        <td className="px-4 py-3 text-center font-bold text-slate-700">{c.inspector || '-'}</td>
+                        <td className="px-4 py-3 text-center font-bold text-slate-500">{c.shift || '-'}</td>
+                        <td className="px-4 py-3 text-center">
+                          {c.images && c.images.length > 0 ? (
+                            <a href={c.images[0]} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200" title="Xem ảnh">
+                              <ICONS.Image className="w-3 h-3" />
+                            </a>
+                          ) : <span className="text-slate-300">-</span>}
                         </td>
                         <td className="px-4 py-3 text-center flex items-center justify-center gap-2">
                           {/* Actions */}

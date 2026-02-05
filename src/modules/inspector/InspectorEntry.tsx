@@ -299,6 +299,53 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
         }
       }
 
+      // --- CUSTOMER REQUIREMENT: Sync Status to Logistics Containers (CS Dashboard) ---
+      const containersToUpdate: LogisticsContainer[] = [];
+
+      finalReports.forEach(r => {
+        const isComplete = r.status === 'HOAN_TAT';
+        if (!isComplete) return;
+
+        r.items.forEach(item => {
+          // Find matching container in Global Logistics List
+          const existingCont = logisticsContainers.find(c =>
+            c.containerNo === item.contNo || c.id === item.contId // match by No or ID
+          );
+
+          if (existingCont) {
+            // Append new Proof Image if exists
+            const currentImages = existingCont.images || [];
+            if (r.proofImageUrl && !currentImages.includes(r.proofImageUrl)) {
+              currentImages.push(r.proofImageUrl);
+            }
+
+            // Update fields
+            containersToUpdate.push({
+              ...existingCont,
+              status: 'COMPLETED' as any, // Mark as Exploited
+              inspector: r.createdBy,     // Update Inspector Name
+              shift: r.shift,             // Update Shift
+              workOrderApproved: true,    // Auto-approve WO check?
+              tallyApproved: true,        // Auto-approve Tally
+              images: currentImages,      // Sync Image
+              // updated_at: ... handled by DB service
+            });
+          }
+        });
+      });
+
+      if (containersToUpdate.length > 0) {
+        // 1. Update Local State to reflect immediately
+        setLogisticsContainers(prev => prev.map(c => {
+          const updated = containersToUpdate.find(u => u.id === c.id);
+          return updated || c;
+        }));
+
+        // 2. Save to DB
+        db.upsertContainers(containersToUpdate).catch(err => console.error("Error syncing containers to CS:", err));
+      }
+      // --------------------------------------------------------------------------------
+
       setLastCreatedReports(finalReports);
       const newWOs: WorkOrder[] = [];
 
