@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Role } from '../types';
 import { Ship, Lock, User as UserIcon } from 'lucide-react';
 
@@ -16,10 +16,26 @@ const USERS: User[] = [
 ];
 
 const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [dbUsers, setDbUsers] = useState<User[]>(USERS);
+
+    useEffect(() => {
+        // Fetch users from DB and merge/replace static users
+        import('../services/db').then(({ db }) => {
+            db.getSystemUsers().then(users => {
+                const mappedUsers = users.map(u => ({
+                    username: u.username,
+                    name: u.name,
+                    role: u.role,
+                    password: u.password // Ensure we keep password for check
+                }));
+                // Combine with static users if needed, or just replace. 
+                // Replacing is better to reflect DB state.
+                if (mappedUsers.length > 0) {
+                    setDbUsers(mappedUsers as any);
+                }
+            });
+        });
+    }, []);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -27,19 +43,33 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
         setLoading(true);
 
         setTimeout(() => {
-            // Global Password Rule: "1"
-            if (password !== '1') {
-                setError('Mật khẩu không đúng');
+            const user = dbUsers.find(u => u.username.toLowerCase() === username.toLowerCase());
+
+            if (!user) {
+                setError('Tên đăng nhập không đúng');
                 setLoading(false);
                 return;
             }
 
-            const user = USERS.find(u => u.username === username);
-            if (user) {
-                onLogin(user);
+            // Password check: Use DB password if available, otherwise fallback to global '1'
+            // For static users in USERS list, we implicitly accept '1' unless we add password there.
+            const dbPass = (user as any).password;
+            if (dbPass) {
+                if (password !== dbPass) {
+                    setError('Mật khẩu không đúng');
+                    setLoading(false);
+                    return;
+                }
             } else {
-                setError('Tên đăng nhập không đúng');
+                // Legacy static users or users without password set
+                if (password !== '1') {
+                    setError('Mật khẩu không đúng');
+                    setLoading(false);
+                    return;
+                }
             }
+
+            onLogin(user);
             setLoading(false);
         }, 500);
     };
