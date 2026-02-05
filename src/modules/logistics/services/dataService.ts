@@ -174,11 +174,15 @@ export const processImportData = (
     const sizeRaw = getValue(row, ['size', 'KÍCH CỠ', 'SIZE', 'LOẠI CONT']);
     const size = sizeRaw || (unitType === UnitType.VEHICLE ? "XE THỚT" : "40HC");
 
+    // Check for existing container to PRESERVE ID (Update instead of Insert)
+    const existingContainer = containerMap.get(containerNo);
+    const id = existingContainer ? existingContainer.id : (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    }));
+
     const newContainer: Container = {
-      id: crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-      }),
+      id,
       vesselId: currentVesselId,
       unitType,
       containerNo,
