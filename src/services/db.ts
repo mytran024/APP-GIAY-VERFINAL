@@ -137,7 +137,7 @@ export const db = {
         return data as any as Container[];
     },
 
-    upsertContainer: async (c: Container): Promise<Container | null> => {
+    upsertContainer: async (c: Container): Promise<{ data: Container | null, error: any }> => {
         const payload = {
             id: c.id,
             vessel_id: c.vesselId,
@@ -174,9 +174,52 @@ export const db = {
         const { data, error } = await supabase.from('containers').upsert(payload).select().single();
         if (error) {
             console.error("Error saving container:", error);
-            return null;
+            return { data: null, error };
         }
-        return data as any;
+        return { data: data as any, error: null };
+    },
+
+    upsertContainers: async (containers: Container[]): Promise<{ count: number, error: any }> => {
+        if (!containers.length) return { count: 0, error: null };
+        const payloads = containers.map(c => ({
+            id: c.id,
+            vessel_id: c.vesselId,
+            unit_type: c.unitType || 'CONTAINER',
+            container_no: c.containerNo,
+            size: c.size,
+            seal_no: c.sealNo,
+            carrier: c.carrier,
+            pkgs: c.pkgs,
+            weight: c.weight,
+            customs_pkgs: c.customsPkgs,
+            customs_weight: c.customsWeight,
+            bill_no: c.billNo,
+            vendor: c.vendor,
+            det_expiry: c.detExpiry || null,
+            transport_decl_no: c.tkNhaVC,
+            transport_decl_date: c.ngayTkNhaVC || null,
+            dnl_decl_no: c.tkDnlOla,
+            dnl_decl_date: c.ngayTkDnl || null,
+            planning_date: c.ngayKeHoach || null,
+            actual_import_date: c.ngayNhapKho || null,
+            empty_return_location: c.noiHaRong,
+            status: c.status,
+            tally_approved: c.tallyApproved,
+            work_order_approved: c.workOrderApproved,
+            remarks: c.remarks,
+            worker_names: c.workerNames || [],
+            images: c.images || [],
+            shift: c.shift,
+            inspector: c.inspector,
+            updated_at: new Date().toISOString()
+        }));
+
+        const { data, error } = await supabase.from('containers').upsert(payloads).select();
+        if (error) {
+            console.error("Error saving batch containers:", error);
+            return { count: 0, error };
+        }
+        return { count: data?.length || 0, error: null };
     },
 
     deleteContainer: async (id: string): Promise<boolean> => {
