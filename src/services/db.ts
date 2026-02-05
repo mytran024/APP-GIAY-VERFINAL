@@ -230,12 +230,12 @@ export const db = {
 
     // --- TALLY REPORTS ---
     getTallyReports: async (): Promise<TallyReport[]> => {
-        // Requires joining with tally_items to reconstruct the full report object
         const { data, error } = await supabase
             .from('tally_reports')
             .select(`
         id,
         vesselId:vessel_id,
+        vessel:vessels(name),
         mode,
         shift,
         workDate:work_date,
@@ -252,12 +252,23 @@ export const db = {
         vehicleCategory:vehicle_category,
         status,
         createdBy:created_by,
+        creator:system_users(name),
         createdAt:created_at,
         proofImageUrl:proof_image_url,
         tally_items (
-          cont_id, cont_no, size, commodity_type, seal_no, actual_units, actual_weight,
-          is_scratched_floor, torn_units, notes,
-          photos, transport_vehicle, seal_count
+          cont_id,
+          cont_no,
+          size,
+          commodity_type,
+          seal_no,
+          actual_units,
+          actual_weight,
+          is_scratched_floor, 
+          torn_units, 
+          notes,
+          photos, 
+          transport_vehicle, 
+          seal_count
         )
       `)
             .order('created_at', { ascending: false });
@@ -267,28 +278,40 @@ export const db = {
             return [];
         }
 
-        // Transform nested items back to CamelCase
-        return data.map((r: any) => ({
-            ...r,
-            items: r.tally_items.map((i: any) => ({
-                contId: i.cont_id,
-                contNo: i.cont_no,
-                size: i.size,
-                commodityType: i.commodity_type,
-                sealNo: i.seal_no,
-                actualUnits: i.actual_units,
-                actualWeight: i.actual_weight,
-                isScratchedFloor: i.is_scratched_floor,
-                tornUnits: i.torn_units,
-                notes: i.notes || '',
-                transportVehicle: i.transport_vehicle || '',
-                sealCount: i.seal_count || 0,
-                photos: i.photos || []
-            }))
-        })) as TallyReport[];
+        return data.map((r: any) => {
+            // Reconstruct the report with joined data if available
+            const vesselName = r.vessel?.name || "";
+            const creatorName = r.creator?.name || r.createdBy || "Kiểm viên";
+
+            return {
+                ...r,
+                vesselName, // For display in UI if needed
+                creatorName,
+                items: r.tally_items.map((i: any) => ({
+                    contId: i.cont_id,
+                    contNo: i.cont_no,
+                    size: i.size,
+                    commodityType: i.commodity_type,
+                    sealNo: i.seal_no,
+                    actualUnits: i.actual_units,
+                    actualWeight: i.actual_weight,
+                    isScratchedFloor: i.is_scratched_floor,
+                    tornUnits: i.torn_units,
+                    notes: i.notes || '',
+                    transportVehicle: i.transport_vehicle || '',
+                    sealCount: i.seal_count || 0,
+                    photos: i.photos || []
+                }))
+            };
+        }) as TallyReport[];
     },
 
     upsertTallyReport: async (report: TallyReport): Promise<boolean> => {
+        if (!report.id) {
+            console.error("Error saving Tally Report: No ID provided");
+            return false;
+        }
+
         // 1. Upsert Report
         const reportPayload = {
             id: report.id,
@@ -301,6 +324,7 @@ export const db = {
             worker_names: report.workerNames,
             mechanical_count: report.mechanicalCount,
             mechanical_names: report.mechanicalNames,
+            external_mechanical_count: report.externalMechanicalCount || 0,
             mechanical_details: report.mechanicalDetails,
             equipment: report.equipment,
             vehicle_no: report.vehicleNo,
@@ -319,25 +343,34 @@ export const db = {
 
         // 2. Upsert Items (Delete existing for this report to handle updates cleanly?)
         // Strategy: Delete all items for this report first, then re-insert. Safer for simple logic.
-        await supabase.from('tally_items').delete().eq('report_id', report.id);
+        const { error: delError } = await supabase.from('tally_items').delete().eq('report_id', report.id);
+        if (delError) {
+            console.error("Error clearing old items:", delError);
+            return false;
+        }
 
         if (report.items && report.items.length > 0) {
             const itemsPayload = report.items.map(i => ({
                 report_id: report.id,
                 cont_id: i.contId,
                 cont_no: i.contNo,
+                size: i.size,
                 commodity_type: i.commodityType,
                 seal_no: i.sealNo,
+                seal_count: i.sealCount || 0,
                 actual_units: i.actualUnits,
                 actual_weight: i.actualWeight,
                 is_scratched_floor: i.isScratchedFloor,
                 torn_units: i.tornUnits,
-                notes: i.notes,
-                transport_vehicle: i.transportVehicle,
-                photos: i.photos
+                notes: i.notes || '',
+                transport_vehicle: i.transportVehicle || '',
+                photos: i.photos || []
             }));
             const { error: iError } = await supabase.from('tally_items').insert(itemsPayload);
-            if (iError) console.error("Error saving items:", iError);
+            if (iError) {
+                console.error("Error saving items:", iError);
+                return false;
+            }
         }
 
         return true;
@@ -351,6 +384,7 @@ export const db = {
         id,
         reportId:report_id,
         vesselId:vessel_id,
+        vessel:vessels(name),
         type,
         businessType:business_type,
         status,
@@ -374,16 +408,14 @@ export const db = {
         isHoliday:is_holiday,
         isWeekend:is_weekend,
         isOutsourced:is_outsourced
-      `)
-            .order('created_at', { ascending: false });
+      `);
 
-        if (error) {
-            console.error("Error fetching WorkOrders:", error);
-            return [];
-        }
+        if (error) return [];
 
-        // items is already JSONB, so it maps directly
-        return data as any as WorkOrder[];
+        return data.map((wo: any) => ({
+            ...wo,
+            vesselName: wo.vessel?.name || ""
+        })) as any as WorkOrder[];
     },
 
     upsertWorkOrder: async (wo: WorkOrder): Promise<{ data: WorkOrder | null, error: any }> => {

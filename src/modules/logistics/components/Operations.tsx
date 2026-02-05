@@ -215,11 +215,7 @@ const Operations: React.FC<OperationsProps> = ({
       else data = data.filter(c => c.size.includes(selUnitType));
     }
 
-    return [...data].sort((a, b) => {
-      const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-      const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
-      return timeB - timeA;
-    });
+    return [...data].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }, [containers, isExport, selVesselId, selUnitType, vessels]);
 
   const warnings = useMemo(() => {

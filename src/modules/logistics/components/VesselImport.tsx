@@ -63,6 +63,9 @@ const IMPORT_COLUMNS: ColumnConfig[] = [
   { id: 'detExpiry', label: 'HẠN DET', width: 90 },
   { id: 'noiHaRong', label: 'NƠI HẠ RỖNG', width: 120 },
   { id: 'status', label: 'TRẠNG THÁI', width: 130 },
+  { id: 'inspector', label: 'KIỂM VIÊN', width: 100 },
+  { id: 'shift', label: 'CA', width: 50 },
+  { id: 'images', label: 'ẢNH', width: 50 },
   { id: 'actions', label: 'THAO TÁC', width: 80 },
 ];
 
@@ -73,6 +76,9 @@ const EXPORT_COLUMNS: ColumnConfig[] = [
   { id: 'romocNo', label: 'SỐ MOOC', width: 100 },
   { id: 'romocReg', label: 'ĐĂNG KIỂM', width: 85 },
   { id: 'status', label: 'TRẠNG THÁI', width: 110 }, // Added Status
+  { id: 'inspector', label: 'KIỂM VIÊN', width: 100 },
+  { id: 'shift', label: 'CA', width: 50 },
+  { id: 'images', label: 'ẢNH', width: 50 },
   { id: 'driverName', label: 'LÁI XE', width: 150 },
   { id: 'idCard', label: 'CCCD', width: 120 },
   { id: 'phone', label: 'SĐT', width: 100 },
@@ -946,6 +952,15 @@ const VesselImport: React.FC<VesselImportProps> = ({
                         <td className="px-4 py-3 text-center">
                           <StatusBadge status={isMismatch ? ContainerStatus.MISMATCH : c.status} />
                         </td>
+                        <td className="px-4 py-3 text-center font-bold text-slate-700">{c.inspector || '-'}</td>
+                        <td className="px-4 py-3 text-center font-bold text-slate-500">{c.shift || '-'}</td>
+                        <td className="px-4 py-3 text-center">
+                          {c.images && c.images.length > 0 ? (
+                            <a href={c.images[0]} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200" title="Xem ảnh">
+                              <Eye className="w-3 h-3" />
+                            </a>
+                          ) : <span className="text-slate-300">-</span>}
+                        </td>
                         <td className="px-4 py-3 text-center flex items-center justify-center gap-2">
                           {/* Actions */}
                           <button onClick={() => handleEditContainer(c)} className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors" title="Chỉnh sửa">
@@ -986,289 +1001,282 @@ const VesselImport: React.FC<VesselImportProps> = ({
           <ICONS.Ship className="w-20 h-20 mb-4" />
           <p className="font-black text-[12px] uppercase tracking-[0.5em]">Vui lòng chọn tàu để bắt đầu khai thác</p>
         </div>
-      )
-      }
+      )}
 
       {/* Modal Thêm Tàu Mới */}
-      {
-        showVesselModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[500] flex items-center justify-center p-4">
-            <div className="bg-white w-full max-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-slideUp border border-slate-100">
-              <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
-                <h3 className="text-sm font-black uppercase tracking-widest">{isEditMode ? 'CẬP NHẬT THÔNG TIN TÀU' : 'KHỞI TẠO TÀU NHẬP MỚI'}</h3>
-                <button onClick={() => setShowVesselModal(false)} className="text-white hover:opacity-60 transition-all">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-              </div>
-              <form onSubmit={handleCreateVessel} className="p-8 space-y-4 text-left">
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">TÊN TÀU</label>
-                  <input required type="text" value={newVessel.vesselName} onChange={e => setNewVessel({ ...newVessel, vesselName: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-blue-500 uppercase" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">TÊN HÀNG</label>
-                  <input required type="text" value={newVessel.commodity} onChange={e => setNewVessel({ ...newVessel, commodity: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-blue-500" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">CHỦ HÀNG / KHÁCH HÀNG</label>
-                  <select required value={newVessel.consignee} onChange={e => setNewVessel({ ...newVessel, consignee: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-blue-500 uppercase">
-                    <option value="">Chọn chủ hàng...</option>
-                    {consignees.map(c => (
-                      <option key={c.id} value={c.name}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">LỊCH TÀU CẬP (ETA)</label>
-                    <input required type="date" value={newVessel.eta} onChange={e => setNewVessel({ ...newVessel, eta: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-blue-500" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">LỊCH TÀU RỜI (ETD)</label>
-                    <input required type="date" value={newVessel.etd} onChange={e => setNewVessel({ ...newVessel, etd: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-blue-500" />
-                  </div>
-                </div>
-                <button type="submit" className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[11px] tracking-widest hover:bg-blue-600 transition-all active:scale-95">{isEditMode ? 'LƯU THAY ĐỔI' : 'XÁC NHẬN TẠO TÀU'}</button>
-              </form>
+      {showVesselModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[500] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-slideUp border border-slate-100">
+            <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
+              <h3 className="text-sm font-black uppercase tracking-widest">{isEditMode ? 'CẬP NHẬT THÔNG TIN TÀU' : 'KHỞI TẠO TÀU NHẬP MỚI'}</h3>
+              <button onClick={() => setShowVesselModal(false)} className="text-white hover:opacity-60 transition-all">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
             </div>
-          </div>
-        )
-      }
-      {/* Export Modal */}
-      {
-        showExportModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[500] flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-slideUp border border-slate-100">
-              <div className="p-6 bg-emerald-600 text-white flex justify-between items-center">
-                <h3 className="text-sm font-black uppercase tracking-widest">THÔNG BÁO TÀU XUẤT</h3>
-                <button onClick={() => setShowExportModal(false)} className="text-white hover:opacity-60 transition-all">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
+            <form onSubmit={handleCreateVessel} className="p-8 space-y-4 text-left">
+              <div className="space-y-1">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">TÊN TÀU</label>
+                <input required type="text" value={newVessel.vesselName} onChange={e => setNewVessel({ ...newVessel, vesselName: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-blue-500 uppercase" />
               </div>
-              <form onSubmit={handleNotifyExportPlan} className="p-8 space-y-4 text-left max-h-[80vh] overflow-y-auto custom-scrollbar">
+              <div className="space-y-1">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">TÊN HÀNG</label>
+                <input required type="text" value={newVessel.commodity} onChange={e => setNewVessel({ ...newVessel, commodity: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-blue-500" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">CHỦ HÀNG / KHÁCH HÀNG</label>
+                <select required value={newVessel.consignee} onChange={e => setNewVessel({ ...newVessel, consignee: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-blue-500 uppercase">
+                  <option value="">Chọn chủ hàng...</option>
+                  {consignees.map(c => (
+                    <option key={c.id} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">CHỌN LÔ HÀNG (TỪ DANH SÁCH NHẬP)</label>
-                  <select
-                    required
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-emerald-500 appearance-none"
-                    value={modalSelections.vesselId}
-                    onChange={e => setModalSelections({ vesselId: e.target.value })}
-                  >
-                    <option value="">-- CHỌN LÔ HÀNG --</option>
-                    {vesselsForModal.map(v => (
-                      <option key={v.id} value={v.id}>{v.vesselName} ({displayDate(v.eta)})</option>
-                    ))}
-                  </select>
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">LỊCH TÀU CẬP (ETA)</label>
+                  <input required type="date" value={newVessel.eta} onChange={e => setNewVessel({ ...newVessel, eta: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-blue-500" />
                 </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">LỊCH TÀU RỜI (ETD)</label>
+                  <input required type="date" value={newVessel.etd} onChange={e => setNewVessel({ ...newVessel, etd: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-blue-500" />
+                </div>
+              </div>
+              <button type="submit" className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[11px] tracking-widest hover:bg-blue-600 transition-all active:scale-95">{isEditMode ? 'LƯU THAY ĐỔI' : 'XÁC NHẬN TẠO TÀU'}</button>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Export Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[500] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-slideUp border border-slate-100">
+            <div className="p-6 bg-emerald-600 text-white flex justify-between items-center">
+              <h3 className="text-sm font-black uppercase tracking-widest">THÔNG BÁO TÀU XUẤT</h3>
+              <button onClick={() => setShowExportModal(false)} className="text-white hover:opacity-60 transition-all">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
+            <form onSubmit={handleNotifyExportPlan} className="p-8 space-y-4 text-left max-h-[80vh] overflow-y-auto custom-scrollbar">
+              <div className="space-y-1">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">CHỌN LÔ HÀNG (TỪ DANH SÁCH NHẬP)</label>
+                <select
+                  required
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-emerald-500 appearance-none"
+                  value={modalSelections.vesselId}
+                  onChange={e => setModalSelections({ vesselId: e.target.value })}
+                >
+                  <option value="">-- CHỌN LÔ HÀNG --</option>
+                  {vesselsForModal.map(v => (
+                    <option key={v.id} value={v.id}>{v.vesselName} ({displayDate(v.eta)})</option>
+                  ))}
+                </select>
+              </div>
 
-                {modalSelections.vesselId && (
-                  <>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">TÊN TÀU XUẤT (EXPORT VESSEL)</label>
-                        <input required type="text" placeholder="Nhập tên tàu..." value={exportPlanForm.exportVesselName || ''} onChange={e => setExportPlanForm({ ...exportPlanForm, exportVesselName: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-emerald-500 uppercase" />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">CHỦ HÀNG (CONSIGNEE)</label>
-                        <select required value={exportPlanForm.exportConsignee || ''} onChange={e => setExportPlanForm({ ...exportPlanForm, exportConsignee: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-emerald-500 uppercase">
-                          <option value="">Chọn chủ hàng...</option>
-                          {consignees.map(c => (
-                            <option key={c.id} value={c.name}>{c.name}</option>
-                          ))}
-                        </select>
-                      </div>
+              {modalSelections.vesselId && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">TÊN TÀU XUẤT (EXPORT VESSEL)</label>
+                      <input required type="text" placeholder="Nhập tên tàu..." value={exportPlanForm.exportVesselName || ''} onChange={e => setExportPlanForm({ ...exportPlanForm, exportVesselName: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-emerald-500 uppercase" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">CHỦ HÀNG (CONSIGNEE)</label>
+                      <select required value={exportPlanForm.exportConsignee || ''} onChange={e => setExportPlanForm({ ...exportPlanForm, exportConsignee: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-emerald-500 uppercase">
+                        <option value="">Chọn chủ hàng...</option>
+                        {consignees.map(c => (
+                          <option key={c.id} value={c.name}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">THỜI GIAN TÀU CẬP (DỰ KIẾN)</label>
+                      <input required type="datetime-local" value={exportPlanForm.arrivalTime} onChange={e => setExportPlanForm({ ...exportPlanForm, arrivalTime: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-emerald-500" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">THỜI GIAN LÀM HÀNG (DỰ KIẾN)</label>
+                      <input required type="datetime-local" value={exportPlanForm.operationTime} onChange={e => setExportPlanForm({ ...exportPlanForm, operationTime: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-emerald-500" />
+                    </div>
+                  </div>
+
+                  {/* Current Batch Info */}
+                  <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                    <h4 className="text-[10px] font-black text-emerald-700 uppercase tracking-widest mb-3">THÔNG TIN XUẤT LÔ CŨ</h4>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">KHỐI LƯỢNG (TỪ TÀU NHẬP)</label>
+                      <input required type="number" value={exportPlanForm.plannedWeight} onChange={e => setExportPlanForm({ ...exportPlanForm, plannedWeight: Number(e.target.value) })} className="w-full bg-white border border-emerald-200 rounded-xl p-3 font-bold text-emerald-700 outline-none focus:border-emerald-500" />
+                    </div>
+                  </div>
+
+                  {/* Dynamic Additional Cargo */}
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">SẢN LƯỢNG XUẤT THÊM (ADDITIONAL CARGO)</label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const currentItems = exportPlanForm.additionalItems || [];
+                          setExportPlanForm({ ...exportPlanForm, additionalItems: [...currentItems, { pkgs: 0, weight: 0, note: '' }] });
+                        }}
+                        className="bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-700 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-colors flex items-center gap-1"
+                      >
+                        <Plus className="w-3 h-3" /> THÊM
+                      </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">THỜI GIAN TÀU CẬP (DỰ KIẾN)</label>
-                        <input required type="datetime-local" value={exportPlanForm.arrivalTime} onChange={e => setExportPlanForm({ ...exportPlanForm, arrivalTime: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-emerald-500" />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">THỜI GIAN LÀM HÀNG (DỰ KIẾN)</label>
-                        <input required type="datetime-local" value={exportPlanForm.operationTime} onChange={e => setExportPlanForm({ ...exportPlanForm, operationTime: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-emerald-500" />
-                      </div>
-                    </div>
+                    {/* List of Additional Items */}
+                    {(exportPlanForm.additionalItems?.length || 0) > 0 ? (
+                      <div className="space-y-2">
+                        {exportPlanForm.additionalItems?.map((item, idx) => (
+                          <div key={idx} className="flex gap-2 items-start animate-fadeIn">
+                            <div className="flex-1 space-y-1">
+                              <input
+                                placeholder="SỐ KIỆN (PKGS)"
+                                type="number"
+                                value={item.pkgs || ''}
+                                onChange={(e) => {
+                                  const val = Number(e.target.value);
+                                  const newItems = [...(exportPlanForm.additionalItems || [])];
 
-                    {/* Current Batch Info */}
-                    <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
-                      <h4 className="text-[10px] font-black text-emerald-700 uppercase tracking-widest mb-3">THÔNG TIN XUẤT LÔ CŨ</h4>
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">KHỐI LƯỢNG (TỪ TÀU NHẬP)</label>
-                        <input required type="number" value={exportPlanForm.plannedWeight} onChange={e => setExportPlanForm({ ...exportPlanForm, plannedWeight: Number(e.target.value) })} className="w-full bg-white border border-emerald-200 rounded-xl p-3 font-bold text-emerald-700 outline-none focus:border-emerald-500" />
-                      </div>
-                    </div>
+                                  // Auto-calculate weight: pkgs * weight-factor
+                                  const factor = prices.find(p => p.id === 'weight-factor')?.price || 0;
+                                  const calculatedWeight = val * factor;
 
-                    {/* Dynamic Additional Cargo */}
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">SẢN LƯỢNG XUẤT THÊM (ADDITIONAL CARGO)</label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const currentItems = exportPlanForm.additionalItems || [];
-                            setExportPlanForm({ ...exportPlanForm, additionalItems: [...currentItems, { pkgs: 0, weight: 0, note: '' }] });
-                          }}
-                          className="bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-700 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-colors flex items-center gap-1"
-                        >
-                          <Plus className="w-3 h-3" /> THÊM
-                        </button>
-                      </div>
-
-                      {/* List of Additional Items */}
-                      {(exportPlanForm.additionalItems?.length || 0) > 0 ? (
-                        <div className="space-y-2">
-                          {exportPlanForm.additionalItems?.map((item, idx) => (
-                            <div key={idx} className="flex gap-2 items-start animate-fadeIn">
-                              <div className="flex-1 space-y-1">
-                                <input
-                                  placeholder="SỐ KIỆN (PKGS)"
-                                  type="number"
-                                  value={item.pkgs || ''}
-                                  onChange={(e) => {
-                                    const val = Number(e.target.value);
-                                    const newItems = [...(exportPlanForm.additionalItems || [])];
-
-                                    // Auto-calculate weight: pkgs * weight-factor
-                                    const factor = prices.find(p => p.id === 'weight-factor')?.price || 0;
-                                    const calculatedWeight = val * factor;
-
-                                    newItems[idx] = {
-                                      ...newItems[idx],
-                                      pkgs: val,
-                                      weight: parseFloat(calculatedWeight.toFixed(3)) // Round to 3 decimals
-                                    };
-                                    setExportPlanForm({ ...exportPlanForm, additionalItems: newItems });
-                                  }}
-                                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-800 outline-none focus:border-emerald-500"
-                                />
-                              </div>
-                              <div className="flex-1 space-y-1">
-                                <input
-                                  placeholder="TRỌNG LƯỢNG (TẤN)"
-                                  type="number" step="0.01"
-                                  readOnly
-                                  value={item.weight || ''}
-                                  className="w-full bg-slate-100 border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-500 outline-none cursor-not-allowed"
-                                />
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const newItems = exportPlanForm.additionalItems?.filter((_, i) => i !== idx);
+                                  newItems[idx] = {
+                                    ...newItems[idx],
+                                    pkgs: val,
+                                    weight: parseFloat(calculatedWeight.toFixed(3)) // Round to 3 decimals
+                                  };
                                   setExportPlanForm({ ...exportPlanForm, additionalItems: newItems });
                                 }}
-                                className="p-2 text-red-400 hover:text-red-600 transition-colors"
-                              >
-                                <Trash className="w-4 h-4" />
-                              </button>
+                                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-800 outline-none focus:border-emerald-500"
+                              />
                             </div>
-                          ))}
-
-                          {/* Total Summary */}
-                          <div className="p-3 bg-slate-50 rounded-lg flex justify-between items-center text-xs font-bold text-slate-500">
-                            <span>TỔNG CỘNG THÊM:</span>
-                            <span>
-                              {(exportPlanForm.additionalItems || []).reduce((acc, i) => acc + (i.pkgs || 0), 0).toLocaleString()} PKGS
-                              {' - '}
-                              {(exportPlanForm.additionalItems || []).reduce((acc, i) => acc + (i.weight || 0), 0).toLocaleString()} TẤN
-                            </span>
+                            <div className="flex-1 space-y-1">
+                              <input
+                                placeholder="TRỌNG LƯỢNG (TẤN)"
+                                type="number" step="0.01"
+                                readOnly
+                                value={item.weight || ''}
+                                className="w-full bg-slate-100 border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-500 outline-none cursor-not-allowed"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newItems = exportPlanForm.additionalItems?.filter((_, i) => i !== idx);
+                                setExportPlanForm({ ...exportPlanForm, additionalItems: newItems });
+                              }}
+                              className="p-2 text-red-400 hover:text-red-600 transition-colors"
+                            >
+                              <Trash className="w-4 h-4" />
+                            </button>
                           </div>
+                        ))}
+
+                        {/* Total Summary */}
+                        <div className="p-3 bg-slate-50 rounded-lg flex justify-between items-center text-xs font-bold text-slate-500">
+                          <span>TỔNG CỘNG THÊM:</span>
+                          <span>
+                            {(exportPlanForm.additionalItems || []).reduce((acc, i) => acc + (i.pkgs || 0), 0).toLocaleString()} PKGS
+                            {' - '}
+                            {(exportPlanForm.additionalItems || []).reduce((acc, i) => acc + (i.weight || 0), 0).toLocaleString()} TẤN
+                          </span>
                         </div>
-                      ) : (
-                        <div className="p-4 border-2 border-dashed border-slate-100 rounded-xl text-center text-slate-300 text-xs font-bold">
-                          Chưa có sản lượng xuất thêm
-                        </div>
-                      )}
-                    </div>
-
-
-                    <button disabled={isProcessing} type="submit" className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[11px] tracking-widest hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50 mt-4">
-                      {isProcessing ? 'ĐANG XỬ LÝ...' : 'GỬI THÔNG BÁO'}
-                    </button>
-                  </>
-                )}
-                {vesselsForModal.length === 0 && (
-                  <div className="text-center text-slate-400 text-xs italic">
-                    Tất cả tàu đã có kế hoạch xuất hoặc không có tàu nào.
-                  </div>
-                )}
-              </form>
-            </div>
-          </div>
-        )
-      }
-      {/* Manual Add Container Modal */}
-      {
-        showAddContainerModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[600] flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-slideUp border border-slate-100">
-              <div className={`p-6 text-white flex justify-between items-center ${editingContainerId ? 'bg-orange-600' : 'bg-purple-600'}`}>
-                <h3 className="text-sm font-black uppercase tracking-widest">{editingContainerId ? 'CẬP NHẬT THÔNG TIN CONTAINER' : 'THÊM CONTAINER THỦ CÔNG'}</h3>
-                <button onClick={() => setShowAddContainerModal(false)} className="text-white hover:opacity-60 transition-all">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-              </div>
-              <form onSubmit={handleManualAddContainer} className="p-8 space-y-4 text-left max-h-[80vh] overflow-y-auto custom-scrollbar">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1 col-span-2">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">SỐ CONTAINER <span className="text-red-500">*</span></label>
-                    <input required type="text" value={newContainer.containerNo} onChange={e => setNewContainer({ ...newContainer, containerNo: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-purple-500 uppercase" placeholder="AAAA1234567" />
+                      </div>
+                    ) : (
+                      <div className="p-4 border-2 border-dashed border-slate-100 rounded-xl text-center text-slate-300 text-xs font-bold">
+                        Chưa có sản lượng xuất thêm
+                      </div>
+                    )}
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">SỐ SEAL</label>
-                    <input type="text" value={newContainer.sealNo} onChange={e => setNewContainer({ ...newContainer, sealNo: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-purple-500 uppercase" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">KÍCH CỠ</label>
-                    <select value={newContainer.size} onChange={e => setNewContainer({ ...newContainer, size: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-purple-500">
-                      <option value="20">20 FT</option>
-                      <option value="40">40 FT</option>
-                      <option value="45">45 FT</option>
-                    </select>
-                  </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">TK NHÀ VC</label>
-                    <input type="text" value={newContainer.tkNhaVC} onChange={e => setNewContainer({ ...newContainer, tkNhaVC: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-purple-500 uppercase" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">NGÀY TK VC</label>
-                    <input type="date" value={newContainer.ngayTkNhaVC} onChange={e => setNewContainer({ ...newContainer, ngayTkNhaVC: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-purple-500" />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">SỐ KIỆN (PKGS)</label>
-                    <input type="number" value={newContainer.pkgs} onChange={e => setNewContainer({ ...newContainer, pkgs: Number(e.target.value) })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-purple-500" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">TRỌNG LƯỢNG (TẤN)</label>
-                    <input type="number" step="0.01" value={newContainer.weight} onChange={e => setNewContainer({ ...newContainer, weight: Number(e.target.value) })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-purple-500" />
-                  </div>
-
-                  <div className="space-y-1 col-span-2">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">VENDOR</label>
-                    <input type="text" value={newContainer.vendor} onChange={e => setNewContainer({ ...newContainer, vendor: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-purple-500 uppercase" />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">HẠN DET (EXPIRY)</label>
-                    <input type="date" value={newContainer.detExpiry} onChange={e => setNewContainer({ ...newContainer, detExpiry: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-purple-500" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">NƠI HẠ RỖNG</label>
-                    <input type="text" value={newContainer.noiHaRong} onChange={e => setNewContainer({ ...newContainer, noiHaRong: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-purple-500 uppercase" />
-                  </div>
+                  <button disabled={isProcessing} type="submit" className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[11px] tracking-widest hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50 mt-4">
+                    {isProcessing ? 'ĐANG XỬ LÝ...' : 'GỬI THÔNG BÁO'}
+                  </button>
+                </>
+              )}
+              {vesselsForModal.length === 0 && (
+                <div className="text-center text-slate-400 text-xs italic">
+                  Tất cả tàu đã có kế hoạch xuất hoặc không có tàu nào.
                 </div>
-                <button type="submit" className={`w-full py-4 text-white rounded-2xl font-black uppercase text-[11px] tracking-widest transition-all active:scale-95 shadow-lg ${editingContainerId ? 'bg-orange-600 hover:bg-orange-700 shadow-orange-200' : 'bg-purple-600 hover:bg-purple-700 shadow-purple-200'}`}>
-                  {editingContainerId ? 'LƯU THAY ĐỔI' : 'THÊM CONTAINER'}
-                </button>
-              </form>
-            </div>
+              )}
+            </form>
           </div>
-        )
-      }
+        </div>
+      )}
+      {/* Manual Add Container Modal */}
+      {showAddContainerModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[600] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-slideUp border border-slate-100">
+            <div className={`p-6 text-white flex justify-between items-center ${editingContainerId ? 'bg-orange-600' : 'bg-purple-600'}`}>
+              <h3 className="text-sm font-black uppercase tracking-widest">{editingContainerId ? 'CẬP NHẬT THÔNG TIN CONTAINER' : 'THÊM CONTAINER THỦ CÔNG'}</h3>
+              <button onClick={() => setShowAddContainerModal(false)} className="text-white hover:opacity-60 transition-all">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
+            <form onSubmit={handleManualAddContainer} className="p-8 space-y-4 text-left max-h-[80vh] overflow-y-auto custom-scrollbar">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1 col-span-2">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">SỐ CONTAINER <span className="text-red-500">*</span></label>
+                  <input required type="text" value={newContainer.containerNo} onChange={e => setNewContainer({ ...newContainer, containerNo: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-purple-500 uppercase" placeholder="AAAA1234567" />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">SỐ SEAL</label>
+                  <input type="text" value={newContainer.sealNo} onChange={e => setNewContainer({ ...newContainer, sealNo: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-purple-500 uppercase" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">KÍCH CỠ</label>
+                  <select value={newContainer.size} onChange={e => setNewContainer({ ...newContainer, size: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-purple-500">
+                    <option value="20">20 FT</option>
+                    <option value="40">40 FT</option>
+                    <option value="45">45 FT</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">TK NHÀ VC</label>
+                  <input type="text" value={newContainer.tkNhaVC} onChange={e => setNewContainer({ ...newContainer, tkNhaVC: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-purple-500 uppercase" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">NGÀY TK VC</label>
+                  <input type="date" value={newContainer.ngayTkNhaVC} onChange={e => setNewContainer({ ...newContainer, ngayTkNhaVC: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-purple-500" />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">SỐ KIỆN (PKGS)</label>
+                  <input type="number" value={newContainer.pkgs} onChange={e => setNewContainer({ ...newContainer, pkgs: Number(e.target.value) })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-purple-500" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">TRỌNG LƯỢNG (TẤN)</label>
+                  <input type="number" step="0.01" value={newContainer.weight} onChange={e => setNewContainer({ ...newContainer, weight: Number(e.target.value) })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-purple-500" />
+                </div>
+
+                <div className="space-y-1 col-span-2">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">VENDOR</label>
+                  <input type="text" value={newContainer.vendor} onChange={e => setNewContainer({ ...newContainer, vendor: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-purple-500 uppercase" />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">HẠN DET (EXPIRY)</label>
+                  <input type="date" value={newContainer.detExpiry} onChange={e => setNewContainer({ ...newContainer, detExpiry: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-purple-500" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">NƠI HẠ RỖNG</label>
+                  <input type="text" value={newContainer.noiHaRong} onChange={e => setNewContainer({ ...newContainer, noiHaRong: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-purple-500 uppercase" />
+                </div>
+              </div>
+              <button type="submit" className={`w-full py-4 text-white rounded-2xl font-black uppercase text-[11px] tracking-widest transition-all active:scale-95 shadow-lg ${editingContainerId ? 'bg-orange-600 hover:bg-orange-700 shadow-orange-200' : 'bg-purple-600 hover:bg-purple-700 shadow-purple-200'}`}>
+                {editingContainerId ? 'LƯU THAY ĐỔI' : 'THÊM CONTAINER'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -1276,7 +1284,7 @@ const VesselImport: React.FC<VesselImportProps> = ({
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .animate-slideUp { animation: slideUp 0.3s ease-out; }
       `}</style>
-    </div >
+    </div>
   );
 };
 

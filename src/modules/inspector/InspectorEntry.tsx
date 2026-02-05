@@ -100,19 +100,8 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
         setExportVehicles(e.detail.value);
       }
     };
-
     window.addEventListener('storage-update', handleStorageUpdate as EventListener);
-
-    // DB Refresh Interval (30s)
-    const interval = setInterval(() => {
-      db.getTallyReports().then(setAllReports);
-      db.getWorkOrders().then(setAllWorkOrders);
-    }, 30000);
-
-    return () => {
-      window.removeEventListener('storage-update', handleStorageUpdate as EventListener);
-      clearInterval(interval);
-    };
+    return () => window.removeEventListener('storage-update', handleStorageUpdate as EventListener);
   }, []);
 
   // Removed local storage sync effects as we now save directly on action
@@ -192,285 +181,314 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
     setStep('NHAP_TALLY');
   };
 
-  const handleSaveReport = (report: TallyReport, isDraft: boolean) => {
+  const handleSaveReport = async (report: TallyReport, isDraft: boolean) => {
     let finalReports: TallyReport[] = [];
     const ITEMS_PER_PAGE = 15;
+    let hasError = false;
 
     // Helper to generate unique IDs
     const generateId = (prefix: string, index: number = 0) => `${prefix}-${Date.now()}-${index}`;
 
-    if (editingReport) {
-      setAllReports(allReports.map(r => r.id === report.id ? report : r));
-      finalReports = [report];
-      setEditingReport(null);
-    } else {
-      // LOGIC TÁCH TALLY: Container thường vs Xe thớt (chỉ áp dụng hàng Nhập)
-      let groupedItems: { container: TallyItem[], flatbed: TallyItem[] } = { container: [], flatbed: [] };
-
-      if (report.mode === 'NHAP') {
-        report.items.forEach(item => {
-          const isFlatbed = item.contNo.includes('/') || (MOCK_CONTAINERS[report.vesselId]?.find(c => c.contNo === item.contNo)?.size === 'XE THỚT');
-
-          if (isFlatbed) groupedItems.flatbed.push(item);
-          else groupedItems.container.push(item);
-        });
+    try {
+      if (editingReport) {
+        setAllReports(allReports.map(r => r.id === report.id ? report : r));
+        finalReports = [report];
+        setEditingReport(null);
       } else {
-        groupedItems.container = report.items;
-      }
+        // LOGIC TÁCH TALLY: Container thường vs Xe thớt (chỉ áp dụng hàng Nhập)
+        let groupedItems: { container: TallyItem[], flatbed: TallyItem[] } = { container: [], flatbed: [] };
 
-      // Tạo các report con từ các nhóm
-      const createSubReports = (items: TallyItem[], category: 'CONTAINER' | 'XE_THOT') => {
-        if (items.length === 0) return;
-        const totalPages = Math.max(1, Math.ceil(items.length / ITEMS_PER_PAGE));
+        if (report.mode === 'NHAP') {
+          report.items.forEach(item => {
+            const isFlatbed = item.contNo.includes('/') || (MOCK_CONTAINERS[report.vesselId]?.find(c => c.contNo === item.contNo)?.size === 'XE THỚT');
 
-        // Find max sequence specifically for this vessel and mode pattern
-        // ID pattern: MODE-VesselID-Seq (e.g., NHAP-v4-01)
-        const idPrefix = `${report.mode}-${report.vesselId}-`;
-        const existingReports = allReports.filter(r => r.id && r.id.startsWith(idPrefix));
+            if (isFlatbed) groupedItems.flatbed.push(item);
+            else groupedItems.container.push(item);
+          });
+        } else {
+          groupedItems.container = report.items;
+        }
 
-        let maxSeq = 0;
-        existingReports.forEach(r => {
-          const parts = r.id.split('-');
-          const lastPart = parts[parts.length - 1];
-          const num = parseInt(lastPart);
-          if (!isNaN(num) && num > maxSeq) maxSeq = num;
-        });
+        // Tạo các report con từ các nhóm
+        const createSubReports = (items: TallyItem[], category: 'CONTAINER' | 'XE_THOT') => {
+          if (items.length === 0) return;
+          const totalPages = Math.max(1, Math.ceil(items.length / ITEMS_PER_PAGE));
 
-        // Also check against currently generated reports in this batch to avoid duplicates within same save action
-        finalReports.forEach(r => {
-          if (r.id && r.id.startsWith(idPrefix)) {
+          // Find max sequence specifically for this vessel and mode pattern
+          // ID pattern: MODE-VesselID-Seq (e.g., NHAP-v4-01)
+          const idPrefix = `${report.mode}-${report.vesselId}-`;
+          const existingReports = allReports.filter(r => r.id && r.id.startsWith(idPrefix));
+
+          let maxSeq = 0;
+          existingReports.forEach(r => {
             const parts = r.id.split('-');
             const lastPart = parts[parts.length - 1];
             const num = parseInt(lastPart);
             if (!isNaN(num) && num > maxSeq) maxSeq = num;
-          }
-        });
-
-        let currentSeq = maxSeq;
-
-        for (let i = 0; i < totalPages; i++) {
-          currentSeq++;
-          const seqStr = currentSeq.toString().padStart(2, '0');
-          const chunkItems = items.slice(i * ITEMS_PER_PAGE, (i + 1) * ITEMS_PER_PAGE);
-
-          const subReport: TallyReport = {
-            ...report,
-            id: `${idPrefix}${seqStr}-${Date.now()}`,
-            items: chunkItems,
-            vehicleCategory: category
-          };
-          finalReports.push(subReport);
-        }
-      };
-
-      createSubReports(groupedItems.container, 'CONTAINER');
-      createSubReports(groupedItems.flatbed, 'XE_THOT');
-
-
-
-      // Update Local State
-      setAllReports(prev => [...finalReports, ...prev]);
-
-      // DB SAVE (Async)
-      finalReports.forEach(r => {
-        db.upsertTallyReport(r).catch(console.error);
-      });
-    }
-
-    if (isDraft) {
-      setShowSuccess(true);
-      setStep('DANH_SACH_TALLY');
-    } else {
-      // CRITICAL: Mark used seals as 'Used' to prevent reuse
-      if (report.mode === 'XUAT') {
-        const usedSealNumbers = new Set<string>();
-        finalReports.forEach(r => {
-          r.items.forEach(item => {
-            if (item.sealNo) {
-              item.sealNo.split(', ').forEach(s => {
-                const trimmed = s.trim();
-                if (trimmed) usedSealNumbers.add(trimmed);
-              });
-            }
-          });
-        });
-
-        if (usedSealNumbers.size > 0) {
-          const updatedSeals = exportSeals.map(seal => {
-            if (usedSealNumbers.has(seal.serialNumber)) {
-              return { ...seal, status: 'Used' as const };
-            }
-            return seal;
           });
 
-          // Update Local
-          setExportSeals(updatedSeals);
-          // DB Save
-          db.upsertSeals(updatedSeals).catch(console.error);
-        }
-      }
-
-      // --- CUSTOMER REQUIREMENT: Sync Status to Logistics Containers (CS Dashboard) ---
-      const containersToUpdate: LogisticsContainer[] = [];
-
-      finalReports.forEach(r => {
-        const isComplete = r.status === 'HOAN_TAT';
-        if (!isComplete) return;
-
-        r.items.forEach(item => {
-          // Find matching container in Global Logistics List
-          const existingCont = logisticsContainers.find(c =>
-            c.containerNo === item.contNo || c.id === item.contId // match by No or ID
-          );
-
-          if (existingCont) {
-            // Append new Proof Image if exists (FROM ITEM PHOTOS)
-            const currentImages = existingCont.images || [];
-            // Sync photos from the Tally Item to the Logistics Container
-            if (item.photos && item.photos.length > 0) {
-              item.photos.forEach(p => {
-                if (!currentImages.includes(p)) {
-                  currentImages.push(p);
-                }
-              });
+          // Also check against currently generated reports in this batch to avoid duplicates within same save action
+          finalReports.forEach(r => {
+            if (r.id && r.id.startsWith(idPrefix)) {
+              const parts = r.id.split('-');
+              const lastPart = parts[parts.length - 1];
+              const num = parseInt(lastPart);
+              if (!isNaN(num) && num > maxSeq) maxSeq = num;
             }
+          });
 
-            // Update fields
-            containersToUpdate.push({
-              ...existingCont,
-              status: 'COMPLETED' as any, // Mark as Exploited
-              inspector: r.createdBy,     // Update Inspector Name
-              shift: r.shift,             // Update Shift
-              workOrderApproved: true,    // Auto-approve WO check?
-              tallyApproved: true,        // Auto-approve Tally
-              images: currentImages,      // Sync Image
-              ngayNhapKho: r.workDate,    // Sync Work Date from Tally to Date In
-              // updated_at: ... handled by DB service
-            });
+          let currentSeq = maxSeq;
+
+          for (let i = 0; i < totalPages; i++) {
+            currentSeq++;
+            const seqStr = currentSeq.toString().padStart(2, '0');
+            const chunkItems = items.slice(i * ITEMS_PER_PAGE, (i + 1) * ITEMS_PER_PAGE);
+
+            const subReport: TallyReport = {
+              ...report,
+              id: `${idPrefix}${seqStr}`,
+              items: chunkItems,
+              vehicleCategory: category
+            };
+            finalReports.push(subReport);
           }
-        });
-      });
-
-      if (containersToUpdate.length > 0) {
-        // 1. Update Local State to reflect immediately
-        setLogisticsContainers(prev => prev.map(c => {
-          const updated = containersToUpdate.find(u => u.id === c.id);
-          return updated || c;
-        }));
-
-        // 2. Save to DB
-        db.upsertContainers(containersToUpdate).catch(err => console.error("Error syncing containers to CS:", err));
-      }
-      // --------------------------------------------------------------------------------
-
-      setLastCreatedReports(finalReports);
-      const newWOs: WorkOrder[] = [];
-
-      finalReports.forEach((r) => {
-        const totalUnits = r.items.reduce((sum, item) => sum + item.actualUnits, 0);
-        const totalWeight = r.items.reduce((sum, item) => sum + item.actualWeight, 0);
-
-        let unitLabel = 'Cont';
-        if (r.mode === 'XUAT' || r.vehicleCategory === 'XE_THOT') {
-          unitLabel = 'Xe';
-        }
-
-        let workerHandlingMethod = "";
-        if (r.mode === 'XUAT') {
-          workerHandlingMethod = HANDLING_METHODS.WORKER_EXPORT;
-        } else {
-          if (r.vehicleCategory === 'XE_THOT') {
-            workerHandlingMethod = HANDLING_METHODS.WORKER_IMPORT_FLATBED;
-          } else {
-            workerHandlingMethod = HANDLING_METHODS.WORKER_IMPORT_CONT;
-          }
-        }
-
-        const woCN: WorkOrder = {
-          id: generateId('WO-CN', newWOs.length),
-          reportId: r.id,
-          type: 'CONG_NHAN',
-          organization: r.workerNames || 'Tổ Công Nhân',
-          personCount: r.workerCount,
-          vehicleType: '',
-          vehicleNo: '',
-          handlingMethod: workerHandlingMethod,
-          commodityType: 'Giấy vuông',
-          specification: `${r.items.length} ${unitLabel}`,
-          quantity: totalUnits,
-          weight: totalWeight,
-          dayLaborerCount: 0,
-          note: '',
-          status: 'COMPLETED' as any // Cast to match DB enum or Inspector string
         };
-        newWOs.push(woCN);
 
-        if (r.mechanicalDetails && r.mechanicalDetails.length > 0) {
-          const mechGroups: Record<string, MechanicalDetail[]> = {};
+        createSubReports(groupedItems.container, 'CONTAINER');
+        createSubReports(groupedItems.flatbed, 'XE_THOT');
 
-          r.mechanicalDetails.forEach(mech => {
-            const key = `${mech.isExternal ? 'EXT' : 'INT'}|${mech.task}`;
-            if (!mechGroups[key]) mechGroups[key] = [];
-            mechGroups[key].push(mech);
-          });
+        // Update Local State
+        setAllReports(prev => [...finalReports, ...prev]);
 
-          Object.entries(mechGroups).forEach(([key, mechs]) => {
-            const [typeCode, task] = key.split('|');
-            const isExternal = typeCode === 'EXT';
-            const uniqueNames = Array.from(new Set(mechs.map(m => m.name))).filter(Boolean).join(', ');
-
-            const woMech: WorkOrder = {
-              id: generateId(isExternal ? 'WO-CG-EXT' : 'WO-CG', newWOs.length),
-              reportId: r.id,
-              type: isExternal ? 'CO_GIOI_NGOAI' : 'CO_GIOI',
-              // Fix: Use the unique external unit name instead of generic "Cơ Giới Ngoài" if available
-              organization: isExternal ? uniqueNames : (uniqueNames || r.mechanicalNames || 'Tổ Cơ Giới'),
-              personCount: mechs.length,
-              vehicleType: r.vehicleType,
-              vehicleNo: isExternal ? '' : r.vehicleNo,
-              handlingMethod: task,
-              commodityType: 'Giấy vuông',
-              specification: `${r.items.length} ${unitLabel}`,
-              quantity: totalUnits,
-              weight: totalWeight,
-
-              dayLaborerCount: 0,
-              note: isExternal ? `Thuê ngoài: ${uniqueNames}` : `Lái xe: ${uniqueNames}`,
-              status: 'COMPLETED' as any
-            };
-            newWOs.push(woMech);
-          });
-        } else {
-          if (r.mechanicalCount > 0) {
-            const woCG: WorkOrder = {
-              id: generateId('WO-CG-LEGACY', newWOs.length),
-              reportId: r.id,
-              type: 'CO_GIOI',
-              organization: r.mechanicalNames || 'Tổ Cơ Giới DNL',
-              personCount: r.mechanicalCount,
-              vehicleType: r.vehicleType,
-              vehicleNo: r.vehicleNo,
-              handlingMethod: r.mode === 'NHAP' ? 'Cont -> Cửa kho' : 'Cửa kho -> Lên xe',
-              commodityType: 'Giấy vuông',
-              specification: `${r.items.length} ${unitLabel}`,
-              quantity: totalUnits,
-              weight: totalWeight,
-
-              dayLaborerCount: 0,
-              note: '',
-              status: 'COMPLETED' as any
-            };
-            newWOs.push(woCG);
+        // DB SAVE (Async & Strict)
+        for (const r of finalReports) {
+          const result = await db.upsertTallyReport(r);
+          if (!result) {
+            console.error(`Failed to save report ${r.id}`);
+            hasError = true;
           }
         }
-      });
+      }
 
-      setAllWorkOrders(prev => [...newWOs, ...prev]);
-      // DB Save WOs
-      newWOs.forEach(wo => db.upsertWorkOrder(wo as any).catch(console.error));
+      if (isDraft) {
+        if (!hasError) {
+          setShowSuccess(true);
+          setStep('DANH_SACH_TALLY');
+        } else {
+          alert("Lỗi: Không thể lưu nháp phiếu Tally. Vui lòng kiểm tra kết nối mạng và thử lại.");
+        }
+      } else {
+        // CRITICAL: Mark used seals as 'Used' to prevent reuse
+        if (report.mode === 'XUAT') {
+          const usedSealNumbers = new Set<string>();
+          finalReports.forEach(r => {
+            r.items.forEach(item => {
+              if (item.sealNo) {
+                item.sealNo.split(', ').forEach(s => {
+                  const trimmed = s.trim();
+                  if (trimmed) usedSealNumbers.add(trimmed);
+                });
+              }
+            });
+          });
 
-      setLastCreatedWOs(newWOs);
-      setStep('HOAN_TAT');
+          if (usedSealNumbers.size > 0) {
+            const updatedSeals = exportSeals.map(seal => {
+              if (usedSealNumbers.has(seal.serialNumber)) {
+                return { ...seal, status: 'Used' as const };
+              }
+              return seal;
+            });
+
+            // Update Local
+            setExportSeals(updatedSeals);
+            // DB Save
+            const { error: sealError } = await db.upsertSeals(updatedSeals);
+            if (sealError) console.error("Error updating seals", sealError);
+          }
+        }
+
+        // --- CUSTOMER REQUIREMENT: Sync Status to Logistics Containers (CS Dashboard) ---
+        const containersToUpdate: LogisticsContainer[] = [];
+
+        finalReports.forEach(r => {
+          const isComplete = r.status === 'HOAN_TAT';
+          if (!isComplete) return;
+
+          r.items.forEach(item => {
+            // Find matching container in Global Logistics List
+            const existingCont = logisticsContainers.find(c =>
+              c.containerNo === item.contNo || c.id === item.contId // match by No or ID
+            );
+
+            if (existingCont) {
+              // Append new Proof Image if exists (FROM ITEM PHOTOS)
+              const currentImages = existingCont.images || [];
+              // Sync photos from the Tally Item to the Logistics Container
+              if (item.photos && item.photos.length > 0) {
+                item.photos.forEach(p => {
+                  if (!currentImages.includes(p)) {
+                    currentImages.push(p);
+                  }
+                });
+              }
+
+              // Update fields
+              containersToUpdate.push({
+                ...existingCont,
+                status: 'COMPLETED' as any, // Mark as Exploited
+                inspector: r.createdBy,     // Update Inspector Name
+                shift: r.shift,             // Update Shift
+                workOrderApproved: true,    // Auto-approve WO check?
+                tallyApproved: true,        // Auto-approve Tally
+                images: currentImages,      // Sync Image
+                ngayNhapKho: r.workDate,    // Sync Work Date from Tally to Date In
+                // updated_at: ... handled by DB service
+              });
+            }
+          });
+        });
+
+        if (containersToUpdate.length > 0) {
+          // 1. Update Local State to reflect immediately
+          setLogisticsContainers(prev => prev.map(c => {
+            const updated = containersToUpdate.find(u => u.id === c.id);
+            return updated || c;
+          }));
+
+          // 2. Save to DB
+          const { error: batchErr } = await db.upsertContainers(containersToUpdate);
+          if (batchErr) {
+            console.error("Error syncing containers to CS:", batchErr);
+            // Non-critical, but good to warn?
+          }
+        }
+        // --------------------------------------------------------------------------------
+
+        setLastCreatedReports(finalReports);
+        const newWOs: WorkOrder[] = [];
+
+        finalReports.forEach((r) => {
+          const totalUnits = r.items.reduce((sum, item) => sum + item.actualUnits, 0);
+          const totalWeight = r.items.reduce((sum, item) => sum + item.actualWeight, 0);
+
+          let unitLabel = 'Cont';
+          if (r.mode === 'XUAT' || r.vehicleCategory === 'XE_THOT') {
+            unitLabel = 'Xe';
+          }
+
+          let workerHandlingMethod = "";
+          if (r.mode === 'XUAT') {
+            workerHandlingMethod = HANDLING_METHODS.WORKER_EXPORT;
+          } else {
+            if (r.vehicleCategory === 'XE_THOT') {
+              workerHandlingMethod = HANDLING_METHODS.WORKER_IMPORT_FLATBED;
+            } else {
+              workerHandlingMethod = HANDLING_METHODS.WORKER_IMPORT_CONT;
+            }
+          }
+
+          const woCN: WorkOrder = {
+            id: generateId('WO-CN', newWOs.length),
+            reportId: r.id,
+            type: 'CONG_NHAN',
+            organization: r.workerNames || 'Tổ Công Nhân',
+            personCount: r.workerCount,
+            vehicleType: '',
+            vehicleNo: '',
+            handlingMethod: workerHandlingMethod,
+            commodityType: 'Giấy vuông',
+            specification: `${r.items.length} ${unitLabel}`,
+            quantity: totalUnits,
+            weight: totalWeight,
+            dayLaborerCount: 0,
+            note: '',
+            status: 'COMPLETED' as any // Cast to match DB enum or Inspector string
+          };
+          newWOs.push(woCN);
+
+          if (r.mechanicalDetails && r.mechanicalDetails.length > 0) {
+            const mechGroups: Record<string, MechanicalDetail[]> = {};
+
+            r.mechanicalDetails.forEach(mech => {
+              const key = `${mech.isExternal ? 'EXT' : 'INT'}|${mech.task}`;
+              if (!mechGroups[key]) mechGroups[key] = [];
+              mechGroups[key].push(mech);
+            });
+
+            Object.entries(mechGroups).forEach(([key, mechs]) => {
+              const [typeCode, task] = key.split('|');
+              const isExternal = typeCode === 'EXT';
+              const uniqueNames = Array.from(new Set(mechs.map(m => m.name))).filter(Boolean).join(', ');
+
+              const woMech: WorkOrder = {
+                id: generateId(isExternal ? 'WO-CG-EXT' : 'WO-CG', newWOs.length),
+                reportId: r.id,
+                type: isExternal ? 'CO_GIOI_NGOAI' : 'CO_GIOI',
+                // Fix: Use the unique external unit name instead of generic "Cơ Giới Ngoài" if available
+                organization: isExternal ? uniqueNames : (uniqueNames || r.mechanicalNames || 'Tổ Cơ Giới'),
+                personCount: mechs.length,
+                vehicleType: r.vehicleType,
+                vehicleNo: isExternal ? '' : r.vehicleNo,
+                handlingMethod: task,
+                commodityType: 'Giấy vuông',
+                specification: `${r.items.length} ${unitLabel}`,
+                quantity: totalUnits,
+                weight: totalWeight,
+
+                dayLaborerCount: 0,
+                note: isExternal ? `Thuê ngoài: ${uniqueNames}` : `Lái xe: ${uniqueNames}`,
+                status: 'COMPLETED' as any
+              };
+              newWOs.push(woMech);
+            });
+          } else {
+            if (r.mechanicalCount > 0) {
+              const woCG: WorkOrder = {
+                id: generateId('WO-CG-LEGACY', newWOs.length),
+                reportId: r.id,
+                type: 'CO_GIOI',
+                organization: r.mechanicalNames || 'Tổ Cơ Giới DNL',
+                personCount: r.mechanicalCount,
+                vehicleType: r.vehicleType,
+                vehicleNo: r.vehicleNo,
+                handlingMethod: r.mode === 'NHAP' ? 'Cont -> Cửa kho' : 'Cửa kho -> Lên xe',
+                commodityType: 'Giấy vuông',
+                specification: `${r.items.length} ${unitLabel}`,
+                quantity: totalUnits,
+                weight: totalWeight,
+
+                dayLaborerCount: 0,
+                note: '',
+                status: 'COMPLETED' as any
+              };
+              newWOs.push(woCG);
+            }
+          }
+        });
+
+        setAllWorkOrders(prev => [...newWOs, ...prev]);
+
+        // DB Save WOs (Strict)
+        for (const wo of newWOs) {
+          const { error: woError } = await db.upsertWorkOrder(wo as any);
+          if (woError) {
+            console.error(`Failed to save Work Order ${wo.id}`, woError);
+            hasError = true;
+          }
+        }
+
+        setLastCreatedWOs(newWOs);
+
+        if (!hasError) {
+          setStep('HOAN_TAT');
+        } else {
+          alert("Cảnh báo: Một số dữ liệu (Phiếu Work Order) không lưu được vào hệ thống. Vui lòng báo quản trị viên.");
+        }
+      }
+    } catch (error) {
+      console.error("Critical Save Error:", error);
+      alert("LỖI NGHIÊM TRỌNG: Đã xảy ra lỗi trong quá trình lưu. Dữ liệu có thể chưa được đồng bộ.");
     }
   };
 

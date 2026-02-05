@@ -183,12 +183,6 @@ const PricingConfigPage: React.FC<PricingConfigProps> = ({ prices, onUpdatePrice
     }
   };
 
-  const deletePrice = (id: string) => {
-    if (confirm("Chắc chắn xoá phương án này?")) {
-      onUpdatePrices(prices.filter(p => p.id !== id));
-    }
-  };
-
   /* Consignee Handlers */
   const handleAddConsignee = () => {
     const newConsignee: Consignee = {
@@ -387,15 +381,9 @@ const PricingConfigPage: React.FC<PricingConfigProps> = ({ prices, onUpdatePrice
                       </td>
                       <td className="px-8 py-5 text-center">
                         {editingId === p.id ? (
-                          <div className="flex justify-center gap-2">
-                            <button onClick={saveEdit} className="p-2 bg-emerald-600 text-white rounded-lg"><CheckCircle className="w-5 h-5" /></button>
-                            <button onClick={() => setEditingId(null)} className="p-2 bg-slate-200 text-slate-500 rounded-lg hover:bg-slate-300"><X className="w-4 h-4" /></button>
-                          </div>
+                          <button onClick={saveEdit} className="p-2 bg-emerald-600 text-white rounded-lg"><CheckCircle className="w-5 h-5" /></button>
                         ) : (
-                          <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => startEdit(p)} className="p-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 hover:bg-blue-600 hover:text-white transition-all">Sửa</button>
-                            <button onClick={() => deletePrice(p.id)} className="p-2 bg-red-50 text-red-600 rounded-xl border border-red-100 hover:bg-red-600 hover:text-white transition-all"><Trash className="w-4 h-4" /></button>
-                          </div>
+                          <button onClick={() => startEdit(p)} className="p-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 hover:bg-blue-600 hover:text-white transition-all">Sửa</button>
                         )}
                       </td>
                     </tr>

@@ -180,7 +180,7 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
   // Reload Tally reports and Work Orders when tab is active (basic sync)
   useEffect(() => {
     const syncWithDB = async () => {
-      if (['operations', 'tally', 'stats', 'debit', 'pct_history', 'reports'].includes(activeTab)) {
+      if (['tally', 'stats', 'debit', 'pct_history', 'reports'].includes(activeTab)) {
         try {
           const [reports, wos] = await Promise.all([
             db.getTallyReports(),
@@ -221,9 +221,25 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
     }
     dateStr = dateStr || new Date().toLocaleDateString('en-GB');
 
-    const isLabor = wo.type === 'CONG_NHAN' || wo.type === WorkOrderType.LABOR;
+    const isLabor = wo.type === 'CONG_NHAN';
     const totalUnits = wo.quantity || (report?.items.reduce((sum: number, i: any) => sum + i.actualUnits, 0)) || 0;
     const totalWeight = wo.weight || (report?.items.reduce((sum: number, i: any) => sum + i.actualWeight, 0)) || 0;
+
+    const normalizedWorkerNames = (() => {
+      // 1. Try existing workerNames array (from DB)
+      if (Array.isArray(wo.workerNames) && wo.workerNames.length > 0) return wo.workerNames;
+
+      // 2. Fallback to teamName/organization string (from Inspector/Legacy)
+      const rawName = wo.teamName || (wo as any).organization || 'N/A';
+      // Split by comma if present (assuming Inspector sends "Name A, Name B")
+      return rawName.split(',').map((s: string) => s.trim()).filter(Boolean);
+    })();
+
+    // Ensure we have at least one name if list is empty
+    const finalWorkerNames = normalizedWorkerNames.length > 0 ? normalizedWorkerNames : ['N/A'];
+
+    // Also update teamName if it was generic but we have names (optional, but good for display)
+    const finalTeamName = wo.teamName || (wo as any).organization || finalWorkerNames.join(', ');
 
     return {
       ...wo,
@@ -231,9 +247,9 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
       type: isLabor ? WorkOrderType.LABOR : WorkOrderType.MECHANICAL,
       businessType: businessType,
       vesselId: wo.vesselId || report?.vesselId || '',
-      teamName: wo.teamName || (wo as any).organization || 'N/A',
-      workerNames: [wo.teamName || (wo as any).organization || 'N/A'].filter(Boolean),
-      peopleCount: wo.quantity || wo.personCount || wo.peopleCount || 0, // Fallback to quantity for piece-rate WOs
+      teamName: finalTeamName,
+      workerNames: finalWorkerNames,
+      peopleCount: wo.quantity || wo.personCount || wo.peopleCount || finalWorkerNames.length || 0, // Fallback chain
       vehicleNos: [wo.vehicleNo || wo.vehicleNos].flat().filter(Boolean),
       shift: wo.shift || report?.shift || '1',
       date: dateStr,
