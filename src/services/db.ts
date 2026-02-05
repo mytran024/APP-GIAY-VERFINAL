@@ -46,7 +46,7 @@ export const db = {
         return data as any as Vessel[];
     },
 
-    upsertVessel: async (vessel: Vessel): Promise<Vessel | null> => {
+    upsertVessel: async (vessel: Vessel): Promise<{ data: Vessel | null, error: any }> => {
         // Map CamelCase -> SnakeCase
         const payload = {
             id: vessel.id,
@@ -76,9 +76,9 @@ export const db = {
 
         if (error) {
             console.error("Error saving vessel:", error);
-            return null;
+            return { data: null, error };
         }
-        return data as any;
+        return { data: data as any, error: null };
     },
 
     deleteVessel: async (id: string): Promise<boolean> => {

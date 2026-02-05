@@ -314,8 +314,8 @@ const VesselImport: React.FC<VesselImportProps> = ({
       onUpdateVessels(updatedVessels);
 
       // SUPABASE SAVE
-      db.upsertVessel(updatedVessels.find(v => v.id === selectedVesselId)!).then(res => {
-        if (!res) alert("Lưu dữ liệu lên Cloud thất bại!");
+      db.upsertVessel(updatedVessels.find(v => v.id === selectedVesselId)!).then(({ error }) => {
+        if (error) alert(`Lưu dữ liệu lên Cloud thất bại! Lỗi: ${error.message || JSON.stringify(error)}`);
       });
 
       setShowVesselModal(false);
@@ -352,11 +352,11 @@ const VesselImport: React.FC<VesselImportProps> = ({
       onUpdateVessels([...vessels, vessel]);
 
       // SUPABASE SAVE
-      db.upsertVessel(vessel).then(saved => {
-        if (!saved) {
-          alert("Lỗi lưu tàu mới lên Cloud!");
+      db.upsertVessel(vessel).then(({ error }) => {
+        if (error) {
+          alert(`Lỗi lưu tàu mới lên Cloud! Chi tiết: ${error.message || JSON.stringify(error)}`);
         } else {
-          // Optional: Update with real ID from DB if we wanted strict UUIDs
+          // Success
         }
       });
 
@@ -415,8 +415,8 @@ const VesselImport: React.FC<VesselImportProps> = ({
         // Prepare updated object for DB (merging changes)
         const dbVessel = updatedVessels.find(v => v.id === modalSelections.vesselId);
         if (dbVessel) {
-          db.upsertVessel(dbVessel).then(res => {
-            if (!res) alert("Lưu thông tin Tàu Xuất lên Cloud thất bại!");
+          db.upsertVessel(dbVessel).then(({ error }) => {
+            if (error) alert(`Lưu thông tin Tàu Xuất lên Cloud thất bại! Lỗi: ${error.message}`);
           });
         }
 
