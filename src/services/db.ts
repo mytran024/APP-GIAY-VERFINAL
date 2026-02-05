@@ -389,7 +389,7 @@ export const db = {
             type: wo.type,
             business_type: wo.businessType,
             status: wo.status,
-            team_name: wo.teamName, // mapped to team_name (organization)
+            team_name: wo.teamName || (wo as any).organization, // mapped to team_name (handles both Logistics/Inspector sources)
             worker_names: wo.workerNames,
             people_count: wo.peopleCount || 0,
             vehicle_nos: wo.vehicleNos,

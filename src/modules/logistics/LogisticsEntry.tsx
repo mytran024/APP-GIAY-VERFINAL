@@ -205,9 +205,13 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
     // Otherwise, treat as an Inspector WO (Flat structure)
     const report = tallyReports.find(tr => tr.id === wo.reportId);
 
-    // Format Date to DD/MM/YYYY
-    let dateStr = wo.date || new Date().toLocaleDateString('en-GB');
-    if (report && report.workDate) {
+    // Format Date to DD/MM/YYYY (Logistics expectation)
+    let dateStr = wo.date;
+    if (dateStr && dateStr.includes('-')) {
+      // Handle YYYY-MM-DD from DB
+      const parts = dateStr.includes('T') ? dateStr.split('T')[0].split('-') : dateStr.split('-');
+      if (parts.length === 3) dateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    } else if (!dateStr && report && report.workDate) {
       if (report.workDate.includes('-')) {
         const parts = report.workDate.split('-');
         if (parts.length === 3) dateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
@@ -215,6 +219,7 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
         dateStr = report.workDate;
       }
     }
+    dateStr = dateStr || new Date().toLocaleDateString('en-GB');
 
     const isLabor = wo.type === 'CONG_NHAN';
     const totalUnits = wo.quantity || (report?.items.reduce((sum: number, i: any) => sum + i.actualUnits, 0)) || 0;
@@ -226,9 +231,9 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
       type: isLabor ? WorkOrderType.LABOR : WorkOrderType.MECHANICAL,
       businessType: businessType,
       vesselId: wo.vesselId || report?.vesselId || '',
-      teamName: wo.organization || wo.teamName || 'N/A',
-      workerNames: [wo.organization || wo.teamName].filter(Boolean),
-      peopleCount: wo.personCount || wo.peopleCount || 0,
+      teamName: wo.teamName || (wo as any).organization || 'N/A',
+      workerNames: [wo.teamName || (wo as any).organization || 'N/A'].filter(Boolean),
+      peopleCount: wo.quantity || wo.personCount || wo.peopleCount || 0, // Fallback to quantity for piece-rate WOs
       vehicleNos: [wo.vehicleNo || wo.vehicleNos].flat().filter(Boolean),
       shift: wo.shift || report?.shift || '1',
       date: dateStr,
@@ -303,8 +308,8 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
   const renderContent = () => {
     switch (activeTab) {
       case 'vessels': return <VesselImport vessels={vessels} onUpdateVessels={setVessels} containers={containers} onUpdateContainers={setContainers} transportVehicles={transportVehicles} prices={servicePrices} consignees={consignees} />;
-      case 'operations': return <Operations key={currentUser?.role} containers={containers} onUpdateContainers={setContainers} detentionConfig={{ urgentDays: 2, warningDays: 5 }} vessels={vessels} businessType={businessType} onSwitchBusinessType={setBusinessType} userRole={currentUser?.role} />;
-      case 'pct_history': return <Statistics containers={containers} workOrders={combinedWorkOrders} vessels={vessels} businessType={businessType} onUpdateWorkOrders={setWorkOrders} reports={tallyReports} />;
+        case_operations: return <Operations key={currentUser?.role} containers={containers} onUpdateContainers={setContainers} detentionConfig={{ urgentDays: 2, warningDays: 5 }} vessels={vessels} businessType={businessType} onSwitchBusinessType={setBusinessType} userRole={currentUser?.role} />;
+      case 'pct_history': return <WorkOrderReview containers={containers} workOrders={combinedWorkOrders} onUpdateWorkOrders={setWorkOrders} onUpdateContainers={setContainers} />;
       case 'tally': return <TallyReview containers={containers} vessels={vessels} onUpdateContainers={setContainers} reports={tallyReports} />;
       case 'stats': return <Statistics containers={containers} workOrders={combinedWorkOrders} vessels={vessels} businessType={businessType} onUpdateWorkOrders={setWorkOrders} reports={tallyReports} />;
       case 'reports': return <ReportsDashboard containers={containers} vessels={vessels} prices={servicePrices} />;

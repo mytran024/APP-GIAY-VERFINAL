@@ -184,7 +184,8 @@ const Statistics: React.FC<{
       if (reportType === 'EXTERNAL_MECH' && (wo.type !== WorkOrderType.MECHANICAL || !wo.isOutsourced)) return [];
       if (vesselFilter !== 'ALL' && wo.vesselId !== vesselFilter) return [];
 
-      const [d, m, y] = wo.date.split('/');
+      const parts = wo.date.includes('-') ? wo.date.split('-').reverse() : wo.date.split('/');
+      const [d, m, y] = parts;
       const isoDate = `${y}-${m}-${d}`;
       if (monthYearFilter !== 'ALL' && `${m}/${y}` !== monthYearFilter) return [];
       if (viewMode === 'LIST' && dateRange.start && isoDate < dateRange.start) return [];
