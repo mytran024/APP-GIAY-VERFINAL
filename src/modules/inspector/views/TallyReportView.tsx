@@ -70,6 +70,7 @@ const TallyReportView: React.FC<TallyReportViewProps> = ({ vessel, shift, mode, 
   });
 
   const [containerSearch, setContainerSearch] = useState('');
+  const [showResults, setShowResults] = useState(false);
   const [proofImage, setProofImage] = useState<string | null>(initialReport?.proofImageUrl || null);
   const [isUploadingProof, setIsUploadingProof] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);

@@ -7,7 +7,7 @@ import { StorageService } from '../../../services/storage';
 import { db } from '../../../services/db'; // Import DB
 import { Role } from '../../../types';
 import * as XLSX from 'xlsx';
-import { User, Calendar, Trash, Edit, Plus, ChevronDown } from 'lucide-react';
+import { User, Calendar, Trash, Edit, Plus, ChevronDown, Image as ImageIcon } from 'lucide-react';
 
 export const StatusBadge: React.FC<{ status: ContainerStatus }> = ({ status }) => {
   const isCompleted = status === ContainerStatus.COMPLETED;
@@ -957,7 +957,7 @@ const VesselImport: React.FC<VesselImportProps> = ({
                         <td className="px-4 py-3 text-center">
                           {c.images && c.images.length > 0 ? (
                             <a href={c.images[0]} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200" title="Xem ảnh">
-                              <ICONS.Image className="w-3 h-3" />
+                              <ImageIcon className="w-3 h-3" />
                             </a>
                           ) : <span className="text-slate-300">-</span>}
                         </td>
