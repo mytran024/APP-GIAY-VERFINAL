@@ -652,8 +652,8 @@ const VesselImport: React.FC<VesselImportProps> = ({
     // Extract unique schedules (ETA - ETD) 
     const schedules = new Set<string>();
     filtered.forEach(v => {
-      const eta = v.eta ? new Date(v.eta).toLocaleDateString('en-GB') : '???';
-      const etd = v.etd ? new Date(v.etd).toLocaleDateString('en-GB') : '???';
+      const eta = (v.eta && !isNaN(new Date(v.eta).getTime())) ? new Date(v.eta).toLocaleDateString('en-GB') : '???';
+      const etd = (v.etd && !isNaN(new Date(v.etd).getTime())) ? new Date(v.etd).toLocaleDateString('en-GB') : '???';
       schedules.add(`ETA: ${eta} - ETD: ${etd}`);
     });
     return Array.from(schedules).sort();
@@ -666,8 +666,8 @@ const VesselImport: React.FC<VesselImportProps> = ({
         const nameMatch = v.vesselName?.toUpperCase().trim() === filterVesselName;
         const consigneeMatch = v.consignee?.toUpperCase().trim() === filterConsignee;
 
-        const eta = v.eta ? new Date(v.eta).toLocaleDateString('en-GB') : '???';
-        const etd = v.etd ? new Date(v.etd).toLocaleDateString('en-GB') : '???';
+        const eta = (v.eta && !isNaN(new Date(v.eta).getTime())) ? new Date(v.eta).toLocaleDateString('en-GB') : '???';
+        const etd = (v.etd && !isNaN(new Date(v.etd).getTime())) ? new Date(v.etd).toLocaleDateString('en-GB') : '???';
         const scheduleString = `ETA: ${eta} - ETD: ${etd}`;
 
         return nameMatch && consigneeMatch && (scheduleString === filterSchedule);
