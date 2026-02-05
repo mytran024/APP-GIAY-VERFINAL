@@ -11,8 +11,9 @@ interface VesselSelectionViewProps {
 const VesselSelectionView: React.FC<VesselSelectionViewProps> = ({ vessels = [], onSelect }) => {
   const [selectedVesselId, setSelectedVesselId] = useState<string>('');
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return '??';
+  const formatDate = (dateValue?: string | number | Date) => {
+    if (!dateValue) return '??';
+    const dateStr = String(dateValue);
 
     // Handle corrupted legacy format (e.g. 02T00:00:00+00:00/02/2026)
     if (dateStr.includes('T') && dateStr.includes('/') && dateStr.length > 20) {
