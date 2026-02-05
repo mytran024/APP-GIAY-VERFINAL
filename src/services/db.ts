@@ -376,7 +376,7 @@ export const db = {
 
         // items is already JSONB, so it maps directly
         return data as any as WorkOrder[];
-    }
+    },
 
     upsertWorkOrder: async (wo: WorkOrder): Promise<{ data: WorkOrder | null, error: any }> => {
         const payload = {

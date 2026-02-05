@@ -68,7 +68,7 @@ export const CustomsView: React.FC<CustomsViewProps> = ({ vessels, csContainers,
   // -- Seal Data Persistence --
   const [allSeals, setAllSeals] = useState<SealData[]>([]);
 
-  const [allSeals, setAllSeals] = useState<SealData[]>([]);
+
 
   useEffect(() => {
     db.getSeals().then(setAllSeals);

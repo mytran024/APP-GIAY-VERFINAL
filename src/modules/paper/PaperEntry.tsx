@@ -12,6 +12,7 @@ import { MOCK_VESSELS } from './constants';
 import { Bell, Check, Trash2, LogOut } from 'lucide-react';
 import { User as GlobalUser, Role as GlobalRole } from '../../types';
 import { db } from '../../services/db'; // Import DB
+import { StorageService } from '../../services/storage';
 import { Container as GlobalContainer, ContainerStatus } from '../../modules/logistics/types';
 
 interface PaperProps {

@@ -64,7 +64,6 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
   }, []);
 
   const [allReports, setAllReports] = useState<TallyReport[]>([]);
-  const [allReports, setAllReports] = useState<TallyReport[]>([]);
   // Use any here to bypass strict local type mismatch, effectively we use the DB type now
   const [allWorkOrders, setAllWorkOrders] = useState<any[]>([]);
 
@@ -339,9 +338,6 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
           weight: totalWeight,
           dayLaborerCount: 0,
           note: '',
-          weight: totalWeight,
-          dayLaborerCount: 0,
-          note: '',
           status: 'COMPLETED' as any // Cast to match DB enum or Inspector string
         };
         newWOs.push(woCN);
@@ -374,7 +370,7 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
               specification: `${r.items.length} ${unitLabel}`,
               quantity: totalUnits,
               weight: totalWeight,
-              dayLaborerCount: 0,
+
               dayLaborerCount: 0,
               note: isExternal ? `Thuê ngoài: ${uniqueNames}` : `Lái xe: ${uniqueNames}`,
               status: 'COMPLETED' as any
@@ -396,7 +392,7 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
               specification: `${r.items.length} ${unitLabel}`,
               quantity: totalUnits,
               weight: totalWeight,
-              dayLaborerCount: 0,
+
               dayLaborerCount: 0,
               note: '',
               status: 'COMPLETED' as any
@@ -408,7 +404,7 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
 
       setAllWorkOrders(prev => [...newWOs, ...prev]);
       // DB Save WOs
-      newWOs.forEach(wo => db.upsertWorkOrder(wo).catch(console.error));
+      newWOs.forEach(wo => db.upsertWorkOrder(wo as any).catch(console.error));
 
       setLastCreatedWOs(newWOs);
       setStep('HOAN_TAT');
