@@ -255,6 +255,7 @@ export const db = {
         createdAt:created_at,
         proofImageUrl:proof_image_url,
         tally_items (
+          cont_id, cont_no, size, commodity_type, seal_no, actual_units, actual_weight,
           is_scratched_floor, torn_units, notes,
           photos, transport_vehicle, seal_count
         )
@@ -373,9 +374,13 @@ export const db = {
         isHoliday:is_holiday,
         isWeekend:is_weekend,
         isOutsourced:is_outsourced
-      `);
+      `)
+            .order('created_at', { ascending: false });
 
-        if (error) return [];
+        if (error) {
+            console.error("Error fetching WorkOrders:", error);
+            return [];
+        }
 
         // items is already JSONB, so it maps directly
         return data as any as WorkOrder[];

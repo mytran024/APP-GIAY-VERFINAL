@@ -100,8 +100,19 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
         setExportVehicles(e.detail.value);
       }
     };
+
     window.addEventListener('storage-update', handleStorageUpdate as EventListener);
-    return () => window.removeEventListener('storage-update', handleStorageUpdate as EventListener);
+
+    // DB Refresh Interval (30s)
+    const interval = setInterval(() => {
+      db.getTallyReports().then(setAllReports);
+      db.getWorkOrders().then(setAllWorkOrders);
+    }, 30000);
+
+    return () => {
+      window.removeEventListener('storage-update', handleStorageUpdate as EventListener);
+      clearInterval(interval);
+    };
   }, []);
 
   // Removed local storage sync effects as we now save directly on action
@@ -244,7 +255,7 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
 
           const subReport: TallyReport = {
             ...report,
-            id: `${idPrefix}${seqStr}`,
+            id: `${idPrefix}${seqStr}-${Date.now()}`,
             items: chunkItems,
             vehicleCategory: category
           };
