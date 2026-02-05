@@ -313,6 +313,7 @@ export const db = {
         }
 
         // 1. Upsert Report
+        // SANITIZATION: Convert empty strings to NULL for Date/UUID fields to avoid Postgres errors
         const reportPayload = {
             id: report.id,
             vessel_id: report.vesselId,
@@ -337,8 +338,8 @@ export const db = {
 
         const { error: rError } = await supabase.from('tally_reports').upsert(reportPayload);
         if (rError) {
-            console.error("Error saving Tally Report:", rError);
-            return false;
+            console.error("Error saving Tally Report HEADER:", rError);
+            return false; // Return false immediately on header failure
         }
 
         // 2. Upsert Items (Delete existing for this report to handle updates cleanly?)
@@ -352,7 +353,7 @@ export const db = {
         if (report.items && report.items.length > 0) {
             const itemsPayload = report.items.map(i => ({
                 report_id: report.id,
-                cont_id: i.contId,
+                cont_id: i.contId || null, // FIX: Empty string causes UUID error
                 cont_no: i.contNo,
                 size: i.size,
                 commodity_type: i.commodityType,
