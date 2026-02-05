@@ -148,7 +148,11 @@ const TallyReview: React.FC<{ containers: Container[], vessels: Vessel[], onUpda
       for (let i = 0; i < vesselData.length; i += 15) {
         const chunk = vesselData.slice(i, i + 15);
         const reportIndex = Math.floor(i / 15) + 34;
-        const dateObj = new Date(chunk[0].updatedAt);
+        let dateObj = new Date(chunk[0].updatedAt);
+        if (isNaN(dateObj.getTime())) {
+          dateObj = new Date();
+        }
+
         groups.push({
           id: `REP-${activeFilter}-${vessel.id}-${reportIndex}`,
           vesselId: vessel.id,

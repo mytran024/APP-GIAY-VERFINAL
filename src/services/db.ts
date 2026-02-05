@@ -122,7 +122,8 @@ export const db = {
       lastUrgedAt:last_urged_at,
       images,
       shift,
-      inspector
+      inspector,
+      updatedAt:updated_at
     `);
 
         if (vesselId) {
