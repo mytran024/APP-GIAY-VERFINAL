@@ -252,6 +252,7 @@ export const db = {
         status,
         createdBy:created_by,
         createdAt:created_at,
+        proofImageUrl:proof_image_url,
         tally_items (
           id, cont_id, cont_no, size, commodity_type, seal_no, actual_units, actual_weight,
           is_scratched_floor, torn_units, notes, transport_vehicle, seal_count, photos
@@ -304,7 +305,8 @@ export const db = {
             vehicle_type: report.vehicleType,
             vehicle_category: report.vehicleCategory,
             status: report.status,
-            created_by: report.createdBy
+            created_by: report.createdBy,
+            proof_image_url: report.proofImageUrl
         };
 
         const { error: rError } = await supabase.from('tally_reports').upsert(reportPayload);
