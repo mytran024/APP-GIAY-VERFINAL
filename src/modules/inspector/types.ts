@@ -1,0 +1,110 @@
+
+export enum Shift {
+  SHIFT_1 = '1',
+  SHIFT_2 = '2',
+  SHIFT_3 = '3',
+  SHIFT_4 = '4'
+}
+
+export interface Container {
+  id: string;
+  contNo: string;
+  size: string;
+  expectedUnits: number;
+  expectedWeight: number;
+  owner: string;
+  sealNo: string;
+  tkHouse?: string;      // Số TK Nhà VC
+  tkHouseDate?: string;  // Ngày TK Nhà VC
+  tkDnl?: string;        // Số TK DNL
+  tkDnlDate?: string;    // Ngày TK DNL
+  vendor?: string;
+  detLimit?: string;     // Hạn DET
+}
+
+export interface TallyItem {
+  contId: string;
+  contNo: string;
+  size?: string; // Kích thước/Loại xe
+  commodityType: string;
+  sealNo: string;
+  actualUnits: number;
+  actualWeight: number;
+  isScratchedFloor: boolean;
+  tornUnits: number;
+  notes: string;
+  transportVehicle?: string; // Biển số xe vận tải (dành cho Tally Xuất)
+  sealCount?: number;
+  photos: string[]; // Danh sách ảnh (Base64 hoặc URL)
+}
+
+export interface MechanicalDetail {
+  name: string;
+  task: string; // Phương án bốc dỡ
+  isExternal: boolean; // Cơ giới ngoài hay nội bộ
+}
+
+export interface TallyReport {
+  id: string;
+  vesselId: string;
+  mode: 'NHAP' | 'XUAT';
+  shift: Shift;
+  workDate: string;
+  owner: string;
+  workerCount: number;
+  workerNames: string;
+
+  // Cơ giới nội bộ
+  mechanicalCount: number;
+  mechanicalNames: string; // Giữ lại để backward compatibility hiển thị
+
+  // Cơ giới ngoài
+  externalMechanicalCount?: number;
+
+  // Chi tiết phương án bốc dỡ của từng cơ giới
+  mechanicalDetails?: MechanicalDetail[];
+
+  equipment: string;
+  vehicleNo: string;
+  vehicleType: string;
+  items: TallyItem[];
+  createdAt: number;
+  createdBy?: string; // Tên kiểm viên tạo phiếu
+  status: 'NHAP' | 'HOAN_TAT';
+
+  // Metadata để biết report này thuộc loại xe gì (dùng khi tách report)
+  vehicleCategory?: 'CONTAINER' | 'XE_THOT';
+}
+
+export interface WorkOrder {
+  id: string;
+  reportId: string;
+  type: 'CONG_NHAN' | 'CO_GIOI' | 'CO_GIOI_NGOAI';
+  organization: string;
+  personCount: number;
+  vehicleType: string;
+  vehicleNo: string;
+  handlingMethod: string;
+  commodityType: string;
+  specification: string;
+  quantity: number;
+  weight: number;
+  dayLaborerCount: number;
+  note: string;
+  status: 'NHAP' | 'HOAN_TAT';
+}
+
+export interface Vessel {
+  id: string;
+  name: string;
+  voyage: string;
+  eta: string;
+  etd?: string;
+  customerName: string; // Tên khách hàng từ CS
+  totalConts: number;
+  totalUnitsExpected: number;
+  totalWeightExpected: number;
+  isExport?: boolean;
+  isBlocked?: boolean;
+  blockReason?: string;
+}
