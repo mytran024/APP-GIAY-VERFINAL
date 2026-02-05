@@ -510,8 +510,197 @@ export const db = {
         return { count: data?.length || 0, error: null };
     },
 
-    deleteSeal: async (id: string): Promise<boolean> => {
-        const { error } = await supabase.from('seals').delete().eq('id', id);
+    // --- SERVICE PRICES ---
+    getServicePrices: async (): Promise<ServicePrice[]> => {
+        const { data, error } = await supabase
+            .from('service_prices')
+            .select(`
+                id,
+                name,
+                unit,
+                price,
+                category,
+                group,
+                businessType:business_type,
+                subGroup:sub_group
+            `)
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error("Error fetching prices:", error);
+            return [];
+        }
+        return data as any as ServicePrice[];
+    },
+
+    upsertServicePrice: async (p: ServicePrice): Promise<{ data: ServicePrice | null, error: any }> => {
+        const payload = {
+            id: p.id,
+            name: p.name,
+            unit: p.unit,
+            price: p.price,
+            category: p.category,
+            group: p.group,
+            business_type: p.businessType,
+            sub_group: p.subGroup,
+            updated_at: new Date().toISOString()
+        };
+
+        const { data, error } = await supabase.from('service_prices').upsert(payload).select().single();
+        if (error) {
+            console.error("Error saving price:", error);
+            return { data: null, error };
+        }
+        return { data: data as any, error: null };
+    },
+
+    deleteServicePrice: async (id: string): Promise<boolean> => {
+        const { error } = await supabase.from('service_prices').delete().eq('id', id);
+        return !error;
+    },
+
+    // --- CONSIGNEES ---
+    getConsignees: async (): Promise<Consignee[]> => {
+        const { data, error } = await supabase
+            .from('consignees')
+            .select(`
+                id,
+                name,
+                taxCode:tax_code,
+                address,
+                phone,
+                email
+            `)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error("Error fetching consignees:", error);
+            return [];
+        }
+        return data as any as Consignee[];
+    },
+
+    upsertConsignee: async (c: Consignee): Promise<{ data: Consignee | null, error: any }> => {
+        const payload = {
+            id: c.id,
+            name: c.name,
+            tax_code: c.taxCode,
+            address: c.address,
+            phone: c.phone,
+            email: c.email,
+            updated_at: new Date().toISOString()
+        };
+
+        const { data, error } = await supabase.from('consignees').upsert(payload).select().single();
+        if (error) {
+            console.error("Error saving consignee:", error);
+            return { data: null, error };
+        }
+        return { data: data as any, error: null };
+    },
+
+    deleteConsignee: async (id: string): Promise<boolean> => {
+        const { error } = await supabase.from('consignees').delete().eq('id', id);
+        return !error;
+    },
+
+    // --- SYSTEM USERS ---
+    getSystemUsers: async (): Promise<SystemUser[]> => {
+        const { data, error } = await supabase
+            .from('system_users')
+            .select(`
+                id,
+                username,
+                password,
+                name,
+                role,
+                isActive:is_active,
+                employeeId:employee_id,
+                phone,
+                email,
+                department
+            `)
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error("Error fetching users:", error);
+            return [];
+        }
+        return data as any as SystemUser[];
+    },
+
+    upsertSystemUser: async (u: SystemUser): Promise<{ data: SystemUser | null, error: any }> => {
+        const payload = {
+            id: u.id,
+            username: u.username,
+            password: (u as any).password, // Explicitly handle password if present in type or passed in
+            name: u.name,
+            role: u.role,
+            is_active: u.isActive,
+            employee_id: u.employeeId,
+            phone: u.phone,
+            email: u.email,
+            department: u.department,
+            updated_at: new Date().toISOString()
+        };
+
+        const { data, error } = await supabase.from('system_users').upsert(payload).select().single();
+        if (error) {
+            console.error("Error saving user:", error);
+            return { data: null, error };
+        }
+        return { data: data as any, error: null };
+    },
+
+    deleteSystemUser: async (id: string): Promise<boolean> => {
+        const { error } = await supabase.from('system_users').delete().eq('id', id);
+        return !error;
+    },
+
+    // --- RESOURCE MEMBERS ---
+    getResourceMembers: async (): Promise<ResourceMember[]> => {
+        const { data, error } = await supabase
+            .from('resource_members')
+            .select(`
+                id,
+                name,
+                phone,
+                department,
+                type,
+                isOutsourced:is_outsourced,
+                unitName:unit_name
+            `)
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error("Error fetching resources:", error);
+            return [];
+        }
+        return data as any as ResourceMember[];
+    },
+
+    upsertResourceMember: async (r: ResourceMember): Promise<{ data: ResourceMember | null, error: any }> => {
+        const payload = {
+            id: r.id,
+            name: r.name,
+            phone: r.phone,
+            department: r.department,
+            type: r.type,
+            is_outsourced: r.isOutsourced,
+            unit_name: r.unitName,
+            updated_at: new Date().toISOString()
+        };
+
+        const { data, error } = await supabase.from('resource_members').upsert(payload).select().single();
+        if (error) {
+            console.error("Error saving resource:", error);
+            return { data: null, error };
+        }
+        return { data: data as any, error: null };
+    },
+
+    deleteResourceMember: async (id: string): Promise<boolean> => {
+        const { error } = await supabase.from('resource_members').delete().eq('id', id);
         return !error;
     }
 };

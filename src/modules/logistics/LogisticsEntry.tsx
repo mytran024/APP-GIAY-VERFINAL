@@ -66,15 +66,15 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
   const [currentUser, setCurrentUser] = useState<SystemUser | null>(null);
   const [businessType, setBusinessType] = useState<BusinessType>(BusinessType.IMPORT);
   const [activeTab, setActiveTab] = useState('vessels');
-  const [servicePrices, setServicePrices] = useState<ServicePrice[]>(() => StorageService.getPrices(INITIAL_PRICES));
-  const [resourceMembers, setResourceMembers] = useState<ResourceMember[]>(() => StorageService.getResources(INITIAL_RESOURCES));
+  const [servicePrices, setServicePrices] = useState<ServicePrice[]>([]);
+  const [resourceMembers, setResourceMembers] = useState<ResourceMember[]>([]);
   const [transportVehicles, setTransportVehicles] = useState<TransportVehicle[]>(INITIAL_TRANSPORT_VEHICLES);
-
   const [vessels, setVessels] = useState<Vessel[]>([]);
-
   const [containers, setContainers] = useState<Container[]>([]);
+  const [consignees, setConsignees] = useState<Consignee[]>([]);
 
-  // Listen for Storage Updates (Sync between Roles)
+  // Listen for Storage Updates (Sync between Roles) - Only for Containers/Vessels relevant to cross-tab updates for now if needed similar logic for users?
+  // Actually, for DB implementation, realtime subscription is better, but for now we stick to fetch.
   useEffect(() => {
     const handleStorageUpdate = (e: CustomEvent) => {
       const { key } = e.detail;
@@ -105,28 +105,36 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [inspectorWorkOrders, setInspectorWorkOrders] = useState<InspectorWorkOrder[]>([]);
   const [tallyReports, setTallyReports] = useState<TallyReport[]>([]);
-  const [users, setUsers] = useState<SystemUser[]>(() => {
-    return StorageService.getUsers(INITIAL_USERS);
-  });
+  const [users, setUsers] = useState<SystemUser[]>([]);
 
   // FETCH DATA FROM SUPABASE
   useEffect(() => {
     const fetchData = async () => {
       console.log("Fetching data from Supabase...");
-      const [v, c, r, w, iw] = await Promise.all([
-        db.getVessels(),
-        db.getContainers(),
-        db.getTallyReports(),
-        db.getWorkOrders(), // Logistics WO
-        StorageService.getInspectorWorkOrders() // Keep this local for now or migrate later? User said migrate data service.
-        // Actually db.ts doesn't have getInspectorWorkOrders yet. I'll stick to what I made.
-      ]);
+      try {
+        const [v, c, r, w, prices, cons, usrs, res] = await Promise.all([
+          db.getVessels(),
+          db.getContainers(),
+          db.getTallyReports(),
+          db.getWorkOrders(), // Logistics WO
+          db.getServicePrices(),
+          db.getConsignees(),
+          db.getSystemUsers(),
+          db.getResourceMembers(),
+        ]);
 
-      setVessels(v);
-      setContainers(c);
-      setTallyReports(r);
-      setWorkOrders(w);
-      // setInspectorWorkOrders(iw); 
+        setVessels(v);
+        setContainers(c);
+        setTallyReports(r);
+        setWorkOrders(w);
+        setServicePrices(prices);
+        setConsignees(cons);
+        setUsers(usrs);
+        setResourceMembers(res);
+        setInspectorWorkOrders(StorageService.getInspectorWorkOrders()); // Still local
+      } catch (err) {
+        console.error("Failed to load data from Supabase", err);
+      }
     };
     fetchData();
   }, []);
@@ -245,6 +253,37 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
 
   // if (!isLoggedIn) return <Login onLogin={handleLogin} users={users} />;
 
+  // --- DB SYNC HANDLERS ---
+  const handleUpdatePrices = async (newPrices: ServicePrice[]) => {
+    // 1. Detect deletes
+    const deleted = servicePrices.filter(p => !newPrices.find(np => np.id === p.id));
+    for (const d of deleted) await db.deleteServicePrice(d.id);
+    // 2. Upsert
+    for (const p of newPrices) await db.upsertServicePrice(p);
+    setServicePrices(newPrices);
+  };
+
+  const handleUpdateConsignees = async (newConsignees: Consignee[]) => {
+    const deleted = consignees.filter(c => !newConsignees.find(nc => nc.id === c.id));
+    for (const d of deleted) await db.deleteConsignee(d.id);
+    for (const c of newConsignees) await db.upsertConsignee(c);
+    setConsignees(newConsignees);
+  };
+
+  const handleUpdateUsers = async (newUsers: SystemUser[]) => {
+    const deleted = users.filter(u => !newUsers.find(nu => nu.id === u.id));
+    for (const d of deleted) await db.deleteSystemUser(d.id);
+    for (const u of newUsers) await db.upsertSystemUser(u);
+    setUsers(newUsers);
+  };
+
+  const handleUpdateResources = async (newResources: ResourceMember[]) => {
+    const deleted = resourceMembers.filter(r => !newResources.find(nr => nr.id === r.id));
+    for (const d of deleted) await db.deleteResourceMember(d.id);
+    for (const r of newResources) await db.upsertResourceMember(r);
+    setResourceMembers(newResources);
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'vessels': return <VesselImport vessels={vessels} onUpdateVessels={setVessels} containers={containers} onUpdateContainers={setContainers} transportVehicles={transportVehicles} prices={servicePrices} consignees={consignees} />;
@@ -254,8 +293,8 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
       case 'stats': return <Statistics containers={containers} workOrders={combinedWorkOrders} vessels={vessels} businessType={businessType} onUpdateWorkOrders={setWorkOrders} reports={tallyReports} />;
       case 'reports': return <ReportsDashboard containers={containers} vessels={vessels} prices={servicePrices} />;
       case 'debit': return <DebitManagement vessels={vessels} containers={containers} workOrders={combinedWorkOrders} prices={servicePrices} onGoToPricing={() => setActiveTab('pricing')} />;
-      case 'pricing': return <PricingConfigPage prices={servicePrices} onUpdatePrices={setServicePrices} consignees={consignees} onUpdateConsignees={setConsignees} />;
-      case 'users': return <UserManagement users={users} onUpdateUsers={setUsers} resources={resourceMembers} onUpdateResources={setResourceMembers} currentUserRole={currentUser?.role} />;
+      case 'pricing': return <PricingConfigPage prices={servicePrices} onUpdatePrices={handleUpdatePrices} consignees={consignees} onUpdateConsignees={handleUpdateConsignees} />;
+      case 'users': return <UserManagement users={users} onUpdateUsers={handleUpdateUsers} resources={resourceMembers} onUpdateResources={handleUpdateResources} currentUserRole={currentUser?.role} />;
       default: return null;
     }
   };
