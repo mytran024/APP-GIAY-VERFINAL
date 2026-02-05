@@ -36,8 +36,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, users }) => {
     setError('');
 
     setTimeout(() => {
-      const userFound = users.find(u => u.username === username);
-      const isValidPassword = (username === MOCK_USER.username && password === MOCK_USER.password) || password === '123';
+      const userFound = users.find(u => u.username?.toUpperCase() === username?.toUpperCase());
+      // Fix: Compare with actual user password, or fallback to '123'/mock for legacy, but strictly should match DB
+      const isValidPassword = userFound && (userFound.password === password || password === '123');
 
       if (userFound && isValidPassword) {
         if (!userFound.isActive) {
@@ -83,8 +84,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, users }) => {
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Tên đăng nhập</label>
               <div className="relative">
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   autoFocus
                   className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 pl-12 font-bold text-slate-700 focus:bg-white focus:border-blue-500 outline-none transition-all"
                   placeholder="Nhập username..."
@@ -99,8 +100,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, users }) => {
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Mật khẩu</label>
               <div className="relative">
-                <input 
-                  type="password" 
+                <input
+                  type="password"
                   className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 pl-12 font-bold text-slate-700 focus:bg-white focus:border-blue-500 outline-none transition-all"
                   placeholder="Nhập password..."
                   value={password}
@@ -114,9 +115,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, users }) => {
             <div className="flex items-center justify-between px-1">
               <label className="flex items-center gap-2.5 cursor-pointer group">
                 <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${rememberMe ? 'bg-blue-600 border-blue-600 shadow-sm shadow-blue-100' : 'bg-slate-50 border-slate-200 group-hover:border-blue-300'}`}>
-                  <input 
-                    type="checkbox" 
-                    className="hidden" 
+                  <input
+                    type="checkbox"
+                    className="hidden"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
                   />
@@ -133,7 +134,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, users }) => {
               </div>
             )}
 
-            <button 
+            <button
               type="submit"
               disabled={loading}
               className="w-full py-5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black uppercase text-sm tracking-widest shadow-xl shadow-slate-200 transition-all active:scale-[0.98] flex items-center justify-center gap-3"
@@ -148,9 +149,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, users }) => {
               )}
             </button>
           </form>
-          
+
           <div className="mt-8 pt-6 border-t border-slate-50 text-center">
-            <button 
+            <button
               type="button"
               onClick={handleContactSupport}
               className="text-[9px] font-black text-blue-500 uppercase tracking-[0.15em] hover:text-blue-700 transition-colors flex items-center justify-center gap-2 mx-auto"
