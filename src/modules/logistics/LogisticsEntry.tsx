@@ -180,7 +180,7 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
   // Reload Tally reports and Work Orders when tab is active (basic sync)
   useEffect(() => {
     const syncWithDB = async () => {
-      if (['tally', 'stats', 'debit', 'pct_history', 'reports'].includes(activeTab)) {
+      if (['operations', 'tally', 'stats', 'debit', 'pct_history', 'reports'].includes(activeTab)) {
         try {
           const [reports, wos] = await Promise.all([
             db.getTallyReports(),
@@ -308,8 +308,8 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
   const renderContent = () => {
     switch (activeTab) {
       case 'vessels': return <VesselImport vessels={vessels} onUpdateVessels={setVessels} containers={containers} onUpdateContainers={setContainers} transportVehicles={transportVehicles} prices={servicePrices} consignees={consignees} />;
-        case_operations: return <Operations key={currentUser?.role} containers={containers} onUpdateContainers={setContainers} detentionConfig={{ urgentDays: 2, warningDays: 5 }} vessels={vessels} businessType={businessType} onSwitchBusinessType={setBusinessType} userRole={currentUser?.role} />;
-      case 'pct_history': return <WorkOrderReview containers={containers} workOrders={combinedWorkOrders} onUpdateWorkOrders={setWorkOrders} onUpdateContainers={setContainers} />;
+      case 'operations': return <Operations key={currentUser?.role} containers={containers} onUpdateContainers={setContainers} detentionConfig={{ urgentDays: 2, warningDays: 5 }} vessels={vessels} businessType={businessType} onSwitchBusinessType={setBusinessType} userRole={currentUser?.role} />;
+      case 'pct_history': return <Statistics containers={containers} workOrders={combinedWorkOrders} vessels={vessels} businessType={businessType} onUpdateWorkOrders={setWorkOrders} reports={tallyReports} />;
       case 'tally': return <TallyReview containers={containers} vessels={vessels} onUpdateContainers={setContainers} reports={tallyReports} />;
       case 'stats': return <Statistics containers={containers} workOrders={combinedWorkOrders} vessels={vessels} businessType={businessType} onUpdateWorkOrders={setWorkOrders} reports={tallyReports} />;
       case 'reports': return <ReportsDashboard containers={containers} vessels={vessels} prices={servicePrices} />;

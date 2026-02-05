@@ -215,7 +215,11 @@ const Operations: React.FC<OperationsProps> = ({
       else data = data.filter(c => c.size.includes(selUnitType));
     }
 
-    return [...data].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    return [...data].sort((a, b) => {
+      const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+      const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+      return timeB - timeA;
+    });
   }, [containers, isExport, selVesselId, selUnitType, vessels]);
 
   const warnings = useMemo(() => {
@@ -729,8 +733,8 @@ const Operations: React.FC<OperationsProps> = ({
 
                 {viewingContainer.images.length > 1 && (
                   <>
-                    <button onClick={() => setActiveImageIdx(p => (p === 0 ? (viewingContainer.images?.length || 1)-1 : p-1))} className="absolute left-6 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/10 hover:bg-white/30 text-white rounded-full flex items-center justify-center backdrop-blur-md transition-all"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7"></path></svg></button>
-                    <button onClick={() => setActiveImageIdx(p => (p === (viewingContainer.images?.length || 1)-1 ? 0 : p + 1))} className="absolute right-6 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/10 hover:bg-white/30 text-white rounded-full flex items-center justify-center backdrop-blur-md transition-all"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7"></path></svg></button>
+                    <button onClick={() => setActiveImageIdx(p => (p === 0 ? (viewingContainer.images?.length || 1) - 1 : p - 1))} className="absolute left-6 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/10 hover:bg-white/30 text-white rounded-full flex items-center justify-center backdrop-blur-md transition-all"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7"></path></svg></button>
+                    <button onClick={() => setActiveImageIdx(p => (p === (viewingContainer.images?.length || 1) - 1 ? 0 : p + 1))} className="absolute right-6 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/10 hover:bg-white/30 text-white rounded-full flex items-center justify-center backdrop-blur-md transition-all"><svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7"></path></svg></button>
                   </>
                 )}
 
