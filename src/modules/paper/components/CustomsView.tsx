@@ -483,6 +483,15 @@ export const CustomsView: React.FC<CustomsViewProps> = ({ vessels, csContainers,
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return '';
+
+    // Handle corrupted legacy format (e.g. 02T00:00:00+00:00/02/2026)
+    if (dateStr.includes('T') && dateStr.includes('/') && dateStr.length > 20) {
+      const match = dateStr.match(/^(\d{2})T.*\/(\d{2})\/(\d{4})$/);
+      if (match) {
+        return `${match[1]}/${match[2]}/${match[3]}`;
+      }
+    }
+
     try {
       const date = new Date(dateStr);
       if (isNaN(date.getTime())) return dateStr;
