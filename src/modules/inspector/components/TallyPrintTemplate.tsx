@@ -10,6 +10,9 @@ interface TallyPrintTemplateProps {
 }
 
 const TallyPrintTemplate: React.FC<TallyPrintTemplateProps> = ({ report, vessel, isPreview }) => {
+  // Normalize Vessel Name: Strip redundant "TÀU" prefix if present in the System Name
+  const cleanVesselName = vessel.name?.replace(/^TÀU\s+/i, '') || vessel.name;
+
   const ITEMS_PER_PAGE = 10;
   const items = report.items || [];
   const totalPages = Math.max(1, Math.ceil(items.length / ITEMS_PER_PAGE));
@@ -143,7 +146,7 @@ const TallyPrintTemplate: React.FC<TallyPrintTemplateProps> = ({ report, vessel,
                   <img src={COMPANY_LOGO_URL} alt="Danalog" className="h-[70px] w-auto object-contain mb-2" />
                   <p className="font-bold text-[9pt]">KHO HÀNG: DANALOG</p>
                   <p className="italic text-[9pt]">Warehouse Division</p>
-                  <p className="font-bold text-[10pt] mt-1">No: <span className="ml-2">{currentReportNumber} - {vessel.name}</span></p>
+                  <p className="font-bold text-[10pt] mt-1">No: <span className="ml-2">{currentReportNumber} - {cleanVesselName}</span></p>
                 </div>
                 <div className="w-[45%] text-center">
                   <p className="font-bold text-[9pt] uppercase">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
@@ -203,7 +206,7 @@ const TallyPrintTemplate: React.FC<TallyPrintTemplateProps> = ({ report, vessel,
                       {chunk[0]?.commodityType || 'Giấy'}
                     </td>
                     <td className="text-center font-bold bg-white h-[28px] uppercase text-[10pt]">
-                      {vessel.name}
+                      {cleanVesselName}
                     </td>
                     <td className="text-center font-bold bg-white h-[28px] uppercase text-[10pt]">
                       VỊ TRÍ RÚT RUỘT:<br />KHO DANALOG
@@ -328,7 +331,7 @@ const TallyPrintTemplate: React.FC<TallyPrintTemplateProps> = ({ report, vessel,
               <div className="col-span-1">
                 <div className="flex">
                   <span className="w-24">Tàu:</span>
-                  <span className="font-bold uppercase">{vessel.name}</span>
+                  <span className="font-bold uppercase">{cleanVesselName}</span>
                 </div>
                 <div className="italic text-[9pt] mb-1">Vehicle</div>
 
