@@ -255,9 +255,12 @@ export const db = {
         proofImageUrl:proof_image_url,
         tally_items (
           id, cont_id, cont_no, size, commodity_type, seal_no, actual_units, actual_weight,
-          is_scratched_floor, torn_units, notes, transport_vehicle, seal_count, photos
-        )
-      `)
+                // transport_vehicle, 
+                // seal_count, 
+                // photos
+                // notes (Try excluding notes too if they are new)
+            )
+        `)
             .order('created_at', { ascending: false });
 
         if (error) {
@@ -278,9 +281,9 @@ export const db = {
                 actualWeight: i.actual_weight,
                 isScratchedFloor: i.is_scratched_floor,
                 tornUnits: i.torn_units,
-                notes: i.notes,
-                transportVehicle: i.transport_vehicle,
-                sealCount: i.seal_count,
+                notes: i.notes || '',
+                transportVehicle: i.transport_vehicle || '',
+                sealCount: i.seal_count || 0,
                 photos: i.photos || []
             }))
         })) as TallyReport[];

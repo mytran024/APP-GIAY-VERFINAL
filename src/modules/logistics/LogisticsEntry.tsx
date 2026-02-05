@@ -195,8 +195,18 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
       // Format Date to DD/MM/YYYY
       let dateStr = new Date().toLocaleDateString('en-GB');
       if (report && report.workDate) {
-        const parts = report.workDate.split('-'); // YYYY-MM-DD
-        if (parts.length === 3) dateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        try {
+          // Check if it matches YYYY-MM-DD
+          if (report.workDate.includes('-')) {
+            const parts = report.workDate.split('-'); // YYYY-MM-DD
+            if (parts.length === 3) dateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
+          } else {
+            // Fallback if it's already customized
+            dateStr = report.workDate;
+          }
+        } catch (err) {
+          console.warn("Invalid workDate in report:", report.id, report.workDate);
+        }
       }
 
       const isLabor = wo.type === 'CONG_NHAN';
