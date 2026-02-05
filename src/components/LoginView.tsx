@@ -73,7 +73,14 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
                 }
             }
 
-            onLogin(user);
+            // Normalize Role from Vietnamese (DB) to English (App Type)
+            let normalizedRole: any = (user as any).role;
+            if (normalizedRole === 'Kiểm viên') normalizedRole = Role.INSPECTOR;
+            if (normalizedRole === 'Nhân viên Depot') normalizedRole = Role.DEPOT;
+            if (normalizedRole === 'Nhân viên Vận tải') normalizedRole = Role.TRANSPORT;
+            if (normalizedRole === 'Hải Quan') normalizedRole = Role.CUSTOMS;
+
+            onLogin({ ...user, role: normalizedRole });
             setLoading(false);
         }, 500);
     };
