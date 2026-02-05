@@ -306,14 +306,14 @@ export const db = {
         }) as TallyReport[];
     },
 
-    upsertTallyReport: async (report: TallyReport): Promise<boolean> => {
+    upsertTallyReport: async (report: TallyReport): Promise<{ success: boolean, error?: any }> => {
         if (!report.id) {
-            console.error("Error saving Tally Report: No ID provided");
-            return false;
+            const err = "Error saving Tally Report: No ID provided";
+            console.error(err);
+            return { success: false, error: err };
         }
 
         // 1. Upsert Report
-        // SANITIZATION: Convert empty strings to NULL for Date/UUID fields to avoid Postgres errors
         const reportPayload = {
             id: report.id,
             vessel_id: report.vesselId,
@@ -326,7 +326,7 @@ export const db = {
             mechanical_count: report.mechanicalCount,
             mechanical_names: report.mechanicalNames,
             external_mechanical_count: report.externalMechanicalCount || 0,
-            mechanical_details: report.mechanicalDetails,
+            mechanical_details: report.mechanicalDetails || null, // Ensure null if undefined
             equipment: report.equipment,
             vehicle_no: report.vehicleNo,
             vehicle_type: report.vehicleType,
@@ -338,8 +338,8 @@ export const db = {
 
         const { error: rError } = await supabase.from('tally_reports').upsert(reportPayload);
         if (rError) {
-            console.error("Error saving Tally Report HEADER:", rError);
-            return false; // Return false immediately on header failure
+            console.error("Error saving Tally Report:", rError);
+            return { success: false, error: rError };
         }
 
         // 2. Upsert Items (Delete existing for this report to handle updates cleanly?)
@@ -347,13 +347,13 @@ export const db = {
         const { error: delError } = await supabase.from('tally_items').delete().eq('report_id', report.id);
         if (delError) {
             console.error("Error clearing old items:", delError);
-            return false;
+            return { success: false, error: delError };
         }
 
         if (report.items && report.items.length > 0) {
             const itemsPayload = report.items.map(i => ({
                 report_id: report.id,
-                cont_id: i.contId || null, // FIX: Empty string causes UUID error
+                cont_id: i.contId,
                 cont_no: i.contNo,
                 size: i.size,
                 commodity_type: i.commodityType,
@@ -370,11 +370,11 @@ export const db = {
             const { error: iError } = await supabase.from('tally_items').insert(itemsPayload);
             if (iError) {
                 console.error("Error saving items:", iError);
-                return false;
+                return { success: false, error: iError };
             }
         }
 
-        return true;
+        return { success: true };
     },
 
     // --- WORK ORDERS ---

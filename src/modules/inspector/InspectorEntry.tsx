@@ -262,9 +262,11 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
 
         // DB SAVE (Async & Strict)
         for (const r of finalReports) {
-          const result = await db.upsertTallyReport(r);
-          if (!result) {
-            console.error(`Failed to save report ${r.id}`);
+          const { success, error } = await db.upsertTallyReport(r);
+          if (!success) {
+            console.error(`Failed to save report ${r.id}`, error);
+            const errorMsg = typeof error === 'object' && error !== null ? (error.message || JSON.stringify(error)) : error;
+            alert(`Lỗi lưu phiếu Tally ${r.id}: ${errorMsg}`);
             hasError = true;
           }
         }
