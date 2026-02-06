@@ -19,7 +19,7 @@ export const HANDLING_METHODS = {
 export const MOCK_VESSELS: Vessel[] = [
   {
     id: 'v1',
-    name: 'TÀU S30',
+    vesselName: 'TÀU S30',
     voyage: 'V2026-05',
     eta: '05/01/2026',
     etd: '07/01/2026',
@@ -32,7 +32,7 @@ export const MOCK_VESSELS: Vessel[] = [
 
   {
     id: 'v3',
-    name: 'GLORY OCEAN',
+    vesselName: 'GLORY OCEAN',
     voyage: '2403N',
     eta: '15/01/2026',
     etd: '16/01/2026',
@@ -43,7 +43,7 @@ export const MOCK_VESSELS: Vessel[] = [
   },
   {
     id: 'v4',
-    name: 'TÀU MIXED TEST',
+    vesselName: 'TÀU MIXED TEST',
     voyage: 'TEST-01',
     eta: '20/01/2026',
     etd: '21/01/2026',

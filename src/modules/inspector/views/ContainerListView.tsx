@@ -9,16 +9,16 @@ interface ContainerListViewProps {
 
 const ContainerListView: React.FC<ContainerListViewProps> = ({ reports }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // Tổng hợp dữ liệu từ các tàu
   const allConts: (Container & { vesselName: string })[] = [];
   MOCK_VESSELS.forEach(v => {
     (MOCK_CONTAINERS[v.id] || []).forEach(c => {
-      allConts.push({ ...c, vesselName: v.name });
+      allConts.push({ ...c, vesselName: v.vesselName });
     });
   });
 
-  const filteredConts = allConts.filter(c => 
+  const filteredConts = allConts.filter(c =>
     c.contNo.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -30,7 +30,7 @@ const ContainerListView: React.FC<ContainerListViewProps> = ({ reports }) => {
     <div className="space-y-4">
       <div className="sticky top-0 z-10 bg-gray-50 pb-2">
         <div className="relative">
-          <input 
+          <input
             type="text"
             placeholder="Tìm số Cont (VD: MSCU...)"
             className="w-full p-4 pl-12 bg-white border border-gray-200 rounded-2xl shadow-sm outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
@@ -64,7 +64,7 @@ const ContainerListView: React.FC<ContainerListViewProps> = ({ reports }) => {
                   <span className="bg-gray-200 text-gray-500 text-[10px] font-black px-2 py-1 rounded-lg uppercase">Chờ kiểm hàng</span>
                 )}
               </div>
-              
+
               <div className="p-4 space-y-3">
                 <div className="grid grid-cols-2 gap-y-2 text-[11px]">
                   <div>
@@ -88,7 +88,7 @@ const ContainerListView: React.FC<ContainerListViewProps> = ({ reports }) => {
                 </div>
 
                 <div className="pt-2 border-t border-gray-50 flex justify-between items-end">
-                   <div>
+                  <div>
                     <p className="text-gray-400 text-[10px] font-bold uppercase">Hạn DET</p>
                     <p className="font-black text-red-600 text-sm">{c.detLimit || 'N/A'}</p>
                   </div>
