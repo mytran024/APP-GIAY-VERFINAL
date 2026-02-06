@@ -683,7 +683,8 @@ export const db = {
                 phone,
                 email,
                 department,
-                isActive:is_active
+                isActive:is_active,
+                employeeId:employee_id
             `);
 
         if (error) {
@@ -703,7 +704,8 @@ export const db = {
             phone: u.phone,
             email: u.email,
             department: u.department,
-            is_active: u.isActive
+            is_active: u.isActive ?? true,
+            employee_id: u.employeeId
         };
 
         const { data, error } = await supabase.from('system_users').upsert(payload).select().single();
