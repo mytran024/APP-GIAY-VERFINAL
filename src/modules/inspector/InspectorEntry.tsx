@@ -204,7 +204,7 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
     // Helper to generate unique IDs - Use a more stable pattern
     const generateId = (prefix: string, index: number = 0) => {
       const stableBase = `${prefix}-${report.vesselId}-${report.mode}-${report.shift}`;
-      return `${stableBase}-${index}`;
+      return `${stableBase}-${index}-${Date.now()}`;
     };
 
     if (isSaving) return;
@@ -267,7 +267,7 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
 
             const subReport: TallyReport = {
               ...report,
-              id: `${idPrefix}${seqStr}`,
+              id: `${idPrefix}${seqStr}-${Date.now()}`,
               items: chunkItems,
               vehicleCategory: category
             };
