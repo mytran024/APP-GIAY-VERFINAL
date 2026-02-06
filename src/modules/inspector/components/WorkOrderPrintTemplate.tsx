@@ -55,17 +55,17 @@ const WorkOrderPrintTemplate: React.FC<WorkOrderPrintTemplateProps> = ({ wo, rep
       <div className="space-y-2 mb-4 text-[11pt]">
         <div className="flex items-baseline">
           <span className="whitespace-nowrap italic">Tổ (Cá nhân):</span>
-          <span className="flex-1 border-b border-black font-bold px-2 mx-1 min-h-[1.2rem]">{wo.organization}</span>
+          <span className="flex-1 border-b border-black font-bold px-2 mx-1 min-h-[1.2rem]">{wo.organization || 'Đội xếp dỡ/xe DNL'}</span>
           <span className="whitespace-nowrap italic ml-4">Số người:</span>
-          <span className="w-24 border-b border-black font-bold text-center px-2 mx-1 min-h-[1.2rem]">{wo.personCount}</span>
+          <span className="w-24 border-b border-black font-bold text-center px-2 mx-1 min-h-[1.2rem]">{wo.personCount || report.workerCount || 0}</span>
         </div>
 
         <div className="flex items-baseline justify-between">
           <div className="flex flex-1 items-baseline">
             <span className="whitespace-nowrap italic">Loại xe:</span>
-            <span className="flex-1 border-b border-black font-bold px-2 mx-1 min-h-[1.2rem]">{wo.vehicleType || ''}</span>
+            <span className="flex-1 border-b border-black font-bold px-2 mx-1 min-h-[1.2rem]">{wo.vehicleType || report.vehicleType || 'Xe nâng'}</span>
             <span className="whitespace-nowrap italic ml-4">Số xe:</span>
-            <span className="flex-1 border-b border-black font-bold px-2 mx-1 min-h-[1.2rem]">{wo.vehicleNo || ''}</span>
+            <span className="flex-1 border-b border-black font-bold px-2 mx-1 min-h-[1.2rem]">{wo.vehicleNo || report.vehicleNo || 'Thiết bị'}</span>
           </div>
           <div className="flex items-baseline ml-6">
             <span className="whitespace-nowrap italic">Ca:</span>
