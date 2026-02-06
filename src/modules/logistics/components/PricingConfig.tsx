@@ -183,6 +183,12 @@ const PricingConfigPage: React.FC<PricingConfigProps> = ({ prices, onUpdatePrice
     }
   };
 
+  const handleDeletePrice = (id: string) => {
+    if (confirm("Chắc chắn xoá mục này?")) {
+      onUpdatePrices(prices.filter(p => p.id !== id));
+    }
+  };
+
   /* Consignee Handlers */
   const handleAddConsignee = () => {
     const newConsignee: Consignee = {
@@ -286,7 +292,7 @@ const PricingConfigPage: React.FC<PricingConfigProps> = ({ prices, onUpdatePrice
                       {editingConsigneeId === c.id ? (
                         <input type="text" autoFocus className="w-full border-2 border-purple-500 rounded-xl px-4 py-2 outline-none font-black text-slate-800 uppercase" value={editConsigneeValues.name || ''} onChange={(e) => setEditConsigneeValues({ ...editConsigneeValues, name: e.target.value })} placeholder="TÊN CHỦ HÀNG" />
                       ) : (
-                        <span className="font-black text-[13px] uppercase tracking-tight text-slate-800">{c.name}</span>
+                        <span className="font-black text-[13px] uppercase tracking-tight text-slate-800">{c.name || '---'}</span>
                       )}
                     </td>
                     <td className="px-4 py-5">
@@ -344,7 +350,7 @@ const PricingConfigPage: React.FC<PricingConfigProps> = ({ prices, onUpdatePrice
                   <th className="px-4 py-6 font-black uppercase text-[10px] tracking-[0.2em] w-[45%]">Dịch vụ / Phương án</th>
                   <th className="px-4 py-6 font-black uppercase text-[10px] tracking-[0.2em] text-center w-32">Đơn vị</th>
                   <th className="px-4 py-6 font-black uppercase text-[10px] tracking-[0.2em] text-right w-44">Đơn giá</th>
-                  <th className="px-8 py-6 font-black uppercase text-[10px] tracking-[0.2em] text-center w-32">Sửa</th>
+                  <th className="px-8 py-6 font-black uppercase text-[10px] tracking-[0.2em] text-center w-40">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -381,9 +387,15 @@ const PricingConfigPage: React.FC<PricingConfigProps> = ({ prices, onUpdatePrice
                       </td>
                       <td className="px-8 py-5 text-center">
                         {editingId === p.id ? (
-                          <button onClick={saveEdit} className="p-2 bg-emerald-600 text-white rounded-lg"><CheckCircle className="w-5 h-5" /></button>
+                          <div className="flex justify-center gap-2">
+                            <button onClick={saveEdit} className="p-2 bg-emerald-600 text-white rounded-lg"><CheckCircle className="w-5 h-5" /></button>
+                            <button onClick={() => setEditingId(null)} className="p-2 bg-slate-200 text-slate-500 rounded-lg hover:bg-slate-300"><X className="w-4 h-4" /></button>
+                          </div>
                         ) : (
-                          <button onClick={() => startEdit(p)} className="p-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 hover:bg-blue-600 hover:text-white transition-all">Sửa</button>
+                          <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => startEdit(p)} className="p-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 hover:bg-blue-600 hover:text-white transition-all">Sửa</button>
+                            <button onClick={() => handleDeletePrice(p.id)} className="p-2 bg-red-50 text-red-600 rounded-xl border border-red-100 hover:bg-red-600 hover:text-white transition-all"><Trash className="w-4 h-4" /></button>
+                          </div>
                         )}
                       </td>
                     </tr>
