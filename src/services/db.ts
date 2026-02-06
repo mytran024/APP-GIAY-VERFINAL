@@ -180,44 +180,54 @@ export const db = {
 
     upsertContainers: async (containers: Container[]): Promise<{ count: number, error: any }> => {
         if (!containers.length) return { count: 0, error: null };
-        const payloads = containers.map(c => ({
-            id: c.id,
-            vessel_id: c.vesselId,
-            unit_type: c.unitType || 'CONTAINER',
-            container_no: c.containerNo,
-            size: c.size,
-            seal_no: c.sealNo,
-            carrier: c.carrier,
-            pkgs: c.pkgs,
-            weight: c.weight,
-            customs_pkgs: c.customsPkgs,
-            customs_weight: c.customsWeight,
-            bill_no: c.billNo,
-            vendor: c.vendor,
-            det_expiry: c.detExpiry || null,
-            transport_decl_no: c.tkNhaVC,
-            transport_decl_date: c.ngayTkNhaVC || null,
-            dnl_decl_no: c.tkDnlOla,
-            dnl_decl_date: c.ngayTkDnl || null,
-            planning_date: c.ngayKeHoach || null,
-            actual_import_date: c.ngayNhapKho || null,
-            empty_return_location: c.noiHaRong,
-            status: c.status,
-            tally_approved: c.tallyApproved,
-            work_order_approved: c.workOrderApproved,
-            remarks: c.remarks,
-            worker_names: c.workerNames || [],
-            images: c.images || [],
-            shift: c.shift,
-            inspector: c.inspector,
-        }));
 
-        const { data, error } = await supabase.from('containers').upsert(payloads).select();
-        if (error) {
-            console.error("Error saving batch containers:", error);
-            return { count: 0, error };
+        const CHUNK_SIZE = 50;
+        let totalCount = 0;
+
+        for (let i = 0; i < containers.length; i += CHUNK_SIZE) {
+            const chunk = containers.slice(i, i + CHUNK_SIZE);
+            const payloads = chunk.map(c => ({
+                id: c.id,
+                vessel_id: c.vesselId,
+                unit_type: c.unitType || 'CONTAINER',
+                container_no: c.containerNo,
+                size: c.size,
+                seal_no: c.sealNo,
+                carrier: c.carrier,
+                pkgs: c.pkgs,
+                weight: c.weight,
+                customs_pkgs: c.customsPkgs,
+                customs_weight: c.customsWeight,
+                bill_no: c.billNo,
+                vendor: c.vendor,
+                det_expiry: c.detExpiry || null,
+                transport_decl_no: c.tkNhaVC,
+                transport_decl_date: c.ngayTkNhaVC || null,
+                dnl_decl_no: c.tkDnlOla,
+                dnl_decl_date: c.ngayTkDnl || null,
+                planning_date: c.ngayKeHoach || null,
+                actual_import_date: c.ngayNhapKho || null,
+                empty_return_location: c.noiHaRong,
+                status: c.status,
+                tally_approved: c.tallyApproved,
+                work_order_approved: c.workOrderApproved,
+                remarks: c.remarks,
+                worker_names: c.workerNames || [],
+                images: c.images || [],
+                shift: c.shift,
+                inspector: c.inspector,
+            }));
+
+            // Using upsert without .select() to reduce DB load and prevent timeouts
+            const { error } = await supabase.from('containers').upsert(payloads);
+            if (error) {
+                console.error("Error saving batch containers chunk:", error);
+                return { count: totalCount, error };
+            }
+            totalCount += chunk.length;
         }
-        return { count: data?.length || 0, error: null };
+
+        return { count: totalCount, error: null };
     },
 
     deleteContainer: async (id: string): Promise<boolean> => {
@@ -305,6 +315,7 @@ export const db = {
 
     // Helper to ensure valid UUID for Supabase
     _toUUID: (id: string): string => {
+        if (!id) return '00000000-0000-4000-8000-000000000000';
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         if (uuidRegex.test(id)) return id;
 
@@ -312,7 +323,19 @@ export const db = {
         for (const part of parts) {
             if (uuidRegex.test(part)) return part;
         }
-        return crypto.randomUUID();
+
+        // Deterministic UUID from string (Same input -> Same UUID)
+        // This is critical for maintaining foreign key links when using string IDs
+        let hash = 0;
+        for (let i = 0; i < id.length; i++) {
+            const char = id.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        const hex = Math.abs(hash).toString(16).padStart(8, '0');
+        // Create a persistent pattern: hex-0000-4000-8000-hex+reversed_hex
+        const revHex = hex.split('').reverse().join('');
+        return `${hex}-0000-4000-8000-${hex}${revHex.padStart(4, '0')}`;
     },
 
     upsertTallyReport: async (report: TallyReport): Promise<{ success: boolean, error?: any }> => {
@@ -531,19 +554,28 @@ export const db = {
 
     upsertSeals: async (seals: SealData[]): Promise<{ count: number, error: any }> => {
         if (!seals.length) return { count: 0, error: null };
-        const payloads = seals.map(s => ({
-            id: s.id,
-            vessel_id: s.vesselId,
-            serial_number: s.serialNumber,
-            status: s.status,
-        }));
 
-        const { data, error } = await supabase.from('export_seals').upsert(payloads).select();
-        if (error) {
-            console.error("Error saving batch seals:", error);
-            return { count: 0, error };
+        const CHUNK_SIZE = 50;
+        let totalCount = 0;
+
+        for (let i = 0; i < seals.length; i += CHUNK_SIZE) {
+            const chunk = seals.slice(i, i + CHUNK_SIZE);
+            const payloads = chunk.map(s => ({
+                id: s.id,
+                vessel_id: s.vesselId,
+                serial_number: s.serialNumber,
+                status: s.status,
+            }));
+
+            const { error } = await supabase.from('export_seals').upsert(payloads);
+            if (error) {
+                console.error("Error saving batch seals chunk:", error);
+                return { count: totalCount, error };
+            }
+            totalCount += chunk.length;
         }
-        return { count: data?.length || 0, error: null };
+
+        return { count: totalCount, error: null };
     },
 
     deleteSeal: async (id: string): Promise<boolean> => {
