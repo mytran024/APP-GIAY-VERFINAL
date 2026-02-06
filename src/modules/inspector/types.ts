@@ -82,6 +82,7 @@ export interface TallyReport {
 export interface WorkOrder {
   id: string;
   reportId: string;
+  vesselId: string; // Added for CS/ADMIN filtering
   type: 'CONG_NHAN' | 'CO_GIOI' | 'CO_GIOI_NGOAI';
   organization: string;
   personCount: number;

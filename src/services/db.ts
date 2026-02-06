@@ -745,5 +745,19 @@ export const db = {
     deleteResourceMember: async (id: string): Promise<boolean> => {
         const { error } = await supabase.from('resource_members').delete().eq('id', id);
         return !error;
+    },
+
+    // --- REALTIME SUBSCRIPTION ---
+    subscribeToTable: (tableName: string, callback: (payload: any) => void) => {
+        console.log(`[REALTIME] Subscribing to ${tableName}`);
+        return supabase
+            .channel(`public:${tableName}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: tableName }, (payload) => {
+                console.log(`[REALTIME] Change in ${tableName}:`, payload);
+                callback(payload);
+            })
+            .subscribe((status) => {
+                console.log(`[REALTIME] Subscription status for ${tableName}:`, status);
+            });
     }
 };

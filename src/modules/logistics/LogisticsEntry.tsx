@@ -103,7 +103,6 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
 
 
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
-  const [inspectorWorkOrders, setInspectorWorkOrders] = useState<InspectorWorkOrder[]>([]);
   const [tallyReports, setTallyReports] = useState<TallyReport[]>([]);
   const [users, setUsers] = useState<SystemUser[]>([]);
 
@@ -131,12 +130,30 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
         setConsignees(cons);
         setUsers(usrs);
         setResourceMembers(res);
-        setInspectorWorkOrders(StorageService.getInspectorWorkOrders()); // Still local
       } catch (err) {
         console.error("Failed to load data from Supabase", err);
       }
     };
     fetchData();
+  }, []);
+
+  // --- SUPABASE REALTIME SUBSCRIPTIONS ---
+  useEffect(() => {
+    const vSub = db.subscribeToTable('vessels', () => db.getVessels().then(setVessels));
+    const cSub = db.subscribeToTable('containers', () => db.getContainers().then(setContainers));
+    const tSub = db.subscribeToTable('tally_reports', () => db.getTallyReports().then(setTallyReports));
+    const wSub = db.subscribeToTable('work_orders', () => db.getWorkOrders().then(setWorkOrders));
+    const uSub = db.subscribeToTable('system_users', () => db.getSystemUsers().then(setUsers));
+    const rSub = db.subscribeToTable('resource_members', () => db.getResourceMembers().then(setResourceMembers));
+
+    return () => {
+      vSub.unsubscribe();
+      cSub.unsubscribe();
+      tSub.unsubscribe();
+      wSub.unsubscribe();
+      uSub.unsubscribe();
+      rSub.unsubscribe();
+    };
   }, []);
 
 
@@ -177,7 +194,7 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
 
 
 
-  // Reload Tally reports and Work Orders when tab is active (basic sync)
+  // Reload Tally reports and Work Orders when tab is active (redundant now with Realtime, but kept for double-check)
   useEffect(() => {
     const syncWithDB = async () => {
       if (['tally', 'stats', 'debit', 'pct_history', 'reports'].includes(activeTab)) {
@@ -188,7 +205,6 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
           ]);
           setTallyReports(reports);
           setWorkOrders(wos);
-          setInspectorWorkOrders(StorageService.getInspectorWorkOrders());
         } catch (err) {
           console.error("Failed to sync history with Supabase:", err);
         }
@@ -267,25 +283,15 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
   };
 
   const combinedWorkOrders = useMemo(() => {
-    // 1. Normalize DB WOs
-    const normalizedDB = workOrders.map(normalizeWO);
+    // Normalize DB WOs
+    const normalized = workOrders.map(normalizeWO);
 
-    // 2. Normalize Local Inspector WOs (Legacy Support)
-    const normalizedLocal = inspectorWorkOrders.map(normalizeWO);
-
-    // 3. Merge and Deduplicate by ID
-    const merged = [...normalizedDB, ...normalizedLocal];
+    // Sort and return (Deduplication not strictly needed if we only use DB source, but ID unique map is safer)
     const uniqueMap = new Map<string, WorkOrder>();
-
-    merged.forEach(wo => {
-      // Prefer DB version if duplicate ID found (Supabase is source of truth)
-      if (!uniqueMap.has(wo.id)) {
-        uniqueMap.set(wo.id, wo);
-      }
-    });
+    normalized.forEach(wo => uniqueMap.set(wo.id, wo));
 
     return Array.from(uniqueMap.values());
-  }, [workOrders, inspectorWorkOrders, tallyReports, businessType, vessels]);
+  }, [workOrders, tallyReports, businessType, vessels]);
 
 
   // if (!isLoggedIn) return <Login onLogin={handleLogin} users={users} />;

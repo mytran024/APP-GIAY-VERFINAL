@@ -41,26 +41,54 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
 
   // Initial Load from DB
   useEffect(() => {
-    // parallel fetch
-    Promise.all([
-      db.getTallyReports(),
-      db.getWorkOrders(),
-      db.getVessels(),
-      db.getContainers(),
-      db.getSeals(),
-      db.getTransportVehicles()
-    ]).then(([reports, wos, vessels, conts, seals, vehicles]) => {
-      setAllReports(reports);
-      setAllWorkOrders(wos);
-      setLogisticsVessels(vessels);
-      setLogisticsContainers(conts);
-      setExportSeals(seals);
-      setExportVehicles(vehicles);
-    });
+    const fetchData = async () => {
+      try {
+        const [reports, wos, vessels, conts, seals, vehicles, res, prs] = await Promise.all([
+          db.getTallyReports(),
+          db.getWorkOrders(),
+          db.getVessels(),
+          db.getContainers(),
+          db.getSeals(),
+          db.getTransportVehicles(),
+          db.getResourceMembers(),
+          db.getServicePrices()
+        ]);
+        setAllReports(reports);
+        setAllWorkOrders(wos);
+        setLogisticsVessels(vessels);
+        setLogisticsContainers(conts);
+        setExportSeals(seals);
+        setExportVehicles(vehicles);
+        setResources(res);
+        setPrices(prs);
+      } catch (err) {
+        console.error("Failed to load initial data from DB:", err);
+      }
+    };
+    fetchData();
+  }, []);
 
-    // Legacy: Resources and Prices still from Storage (or TODO: move to DB)
-    setResources(StorageService.getResources([]));
-    setPrices(StorageService.getPrices([]));
+  // --- SUPABASE REALTIME SUBSCRIPTIONS ---
+  useEffect(() => {
+    const rSub = db.subscribeToTable('tally_reports', () => db.getTallyReports().then(setAllReports));
+    const wSub = db.subscribeToTable('work_orders', () => db.getWorkOrders().then(setAllWorkOrders));
+    const vSub = db.subscribeToTable('vessels', () => db.getVessels().then(setLogisticsVessels));
+    const cSub = db.subscribeToTable('containers', () => db.getContainers().then(setLogisticsContainers));
+    const sSub = db.subscribeToTable('seals', () => db.getSeals().then(setExportSeals));
+    const vehSub = db.subscribeToTable('transport_vehicles', () => db.getTransportVehicles().then(setExportVehicles));
+    const resSub = db.subscribeToTable('resource_members', () => db.getResourceMembers().then(setResources));
+    const pSub = db.subscribeToTable('service_prices', () => db.getServicePrices().then(setPrices));
+
+    return () => {
+      rSub.unsubscribe();
+      wSub.unsubscribe();
+      vSub.unsubscribe();
+      cSub.unsubscribe();
+      sSub.unsubscribe();
+      vehSub.unsubscribe();
+      resSub.unsubscribe();
+      pSub.unsubscribe();
+    };
   }, []);
 
   const [allReports, setAllReports] = useState<TallyReport[]>([]);
@@ -81,31 +109,17 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
   const [lastCreatedWOs, setLastCreatedWOs] = useState<WorkOrder[]>([]);
   const [lastCreatedReports, setLastCreatedReports] = useState<TallyReport[]>([]);
 
-  // Listen for external updates (e.g. from Logistics)
+  // Listen for external updates (e.g. from Logistics) - Only for things not yet in DB if any
   useEffect(() => {
     const handleStorageUpdate = (e: CustomEvent) => {
+      // Legacy remnants, mostly handled by Realtime now
       if (e.detail.key === 'danalog_resources') {
         setResources(e.detail.value);
-      }
-      if (e.detail.key === 'danalog_vessels') {
-        setLogisticsVessels(e.detail.value);
-      }
-      if (e.detail.key === 'danalog_containers') {
-        setLogisticsContainers(e.detail.value);
-      }
-      if (e.detail.key === 'danalog_seals') {
-        setExportSeals(e.detail.value);
-      }
-      if (e.detail.key === 'danalog_export_vehicles') {
-        setExportVehicles(e.detail.value);
       }
     };
     window.addEventListener('storage-update', handleStorageUpdate as EventListener);
     return () => window.removeEventListener('storage-update', handleStorageUpdate as EventListener);
   }, []);
-
-  // Removed local storage sync effects as we now save directly on action
-  // But kept listener for Resources updates (if they are still local)
 
 
   // Derived Data for Views
@@ -393,6 +407,7 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
           const woCN: WorkOrder = {
             id: generateId('WO-CN', newWOs.length),
             reportId: r.id,
+            vesselId: r.vesselId, // Added vesselId
             type: 'CONG_NHAN',
             organization: r.workerNames || 'Tổ Công Nhân',
             personCount: r.workerCount,
@@ -426,6 +441,7 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
               const woMech: WorkOrder = {
                 id: generateId(isExternal ? 'WO-CG-EXT' : 'WO-CG', newWOs.length),
                 reportId: r.id,
+                vesselId: r.vesselId, // Added vesselId
                 type: isExternal ? 'CO_GIOI_NGOAI' : 'CO_GIOI',
                 // Fix: Use the unique external unit name instead of generic "Cơ Giới Ngoài" if available
                 organization: isExternal ? uniqueNames : (uniqueNames || r.mechanicalNames || 'Tổ Cơ Giới'),
@@ -449,6 +465,7 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
               const woCG: WorkOrder = {
                 id: generateId('WO-CG-LEGACY', newWOs.length),
                 reportId: r.id,
+                vesselId: r.vesselId, // Added vesselId
                 type: 'CO_GIOI',
                 organization: r.mechanicalNames || 'Tổ Cơ Giới DNL',
                 personCount: r.mechanicalCount,
