@@ -475,7 +475,7 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
                 peopleCount: mechs.length,
                 personCount: mechs.length,
                 vehicleType: r.vehicleType,
-                vehicleNo: isExternal ? '' : r.vehicleNo,
+                vehicleNo: uniqueNames || r.vehicleNo, // Use mechanic names which include vehicle numbers
                 containerIds: r.items.map(i => i.contId).filter(Boolean),
                 containerNos: r.items.map(i => i.contNo).filter(Boolean),
                 shift: r.shift,
@@ -486,7 +486,7 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
                 quantity: totalUnits,
                 weight: totalWeight,
                 dayLaborerCount: 0,
-                note: isExternal ? `Thuê ngoài: ${uniqueNames}` : `Lái xe: ${uniqueNames}`,
+                note: isExternal ? `Thuê ngoài: ${uniqueNames}` : '',
                 status: 'COMPLETED' as any
               };
               newWOs.push(woMech);
