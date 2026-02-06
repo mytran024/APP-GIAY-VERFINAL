@@ -124,9 +124,9 @@ const WorkOrderPrintTemplate: React.FC<WorkOrderPrintTemplateProps> = ({ wo, rep
           <p className="italic text-[9pt] mb-8">(Ghi rõ họ tên)</p>
           <div className="mt-auto">
             <p className="font-bold">
-              {wo.type === 'CO_GIOI_NGOAI'
+              {wo.isOutsourced
                 ? ''
-                : (wo.type === 'CONG_NHAN' ? report.workerNames.split(',')[0] : report.mechanicalNames.split(',')[0])}
+                : (wo.type === 'LABOR' ? report.workerNames.split(',')[0] : report.mechanicalNames.split(',')[0])}
             </p>
           </div>
         </div>

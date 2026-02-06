@@ -17,7 +17,7 @@ interface HistoryViewProps {
 }
 
 const HistoryView: React.FC<HistoryViewProps> = ({ reports, workOrders, mode, onEditTally, onEditWO, user }) => {
-  const [woFilter, setWoFilter] = useState<'CONG_NHAN' | 'CO_GIOI' | 'CO_GIOI_NGOAI'>('CONG_NHAN');
+  const [woFilter, setWoFilter] = useState<'LABOR' | 'MECHANICAL' | 'MECHANICAL_EXTERNAL'>('LABOR');
   const [tallyTypeFilter, setTallyTypeFilter] = useState<'NHAP' | 'XUAT'>('NHAP');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'NHAP' | 'HOAN_TAT'>('ALL');
 
@@ -66,9 +66,9 @@ const HistoryView: React.FC<HistoryViewProps> = ({ reports, workOrders, mode, on
   // Extract unique organizations for dropdown from constant lists (CS)
   const availableOrgs = useMemo(() => {
     switch (woFilter) {
-      case 'CONG_NHAN': return MOCK_WORKERS;
-      case 'CO_GIOI': return MOCK_DRIVERS;
-      case 'CO_GIOI_NGOAI': return MOCK_EXTERNAL_UNITS;
+      case 'LABOR': return MOCK_WORKERS;
+      case 'MECHANICAL': return MOCK_DRIVERS;
+      case 'MECHANICAL_EXTERNAL': return MOCK_EXTERNAL_UNITS;
       default: return [];
     }
   }, [woFilter]);
@@ -161,7 +161,13 @@ const HistoryView: React.FC<HistoryViewProps> = ({ reports, workOrders, mode, on
   const filteredWOs = useMemo(() => {
     return workOrders.filter(wo => {
       // 1. Check WO Type
-      if (wo.type !== woFilter) return false;
+      if (woFilter === 'LABOR') {
+        if (wo.type !== 'LABOR') return false;
+      } else if (woFilter === 'MECHANICAL') {
+        if (wo.type !== 'MECHANICAL' || wo.isOutsourced) return false;
+      } else if (woFilter === 'MECHANICAL_EXTERNAL') {
+        if (wo.type !== 'MECHANICAL' || !wo.isOutsourced) return false;
+      }
 
       // 2. Check Ownership via Relation to Tally Report
       const relatedTally = reports.find(r => r.id === wo.reportId);
@@ -247,13 +253,12 @@ const HistoryView: React.FC<HistoryViewProps> = ({ reports, workOrders, mode, on
   };
 
   // Helper to determine dot color for WOs
-  const getDotColor = (type: string) => {
-    switch (type) {
-      case 'CONG_NHAN': return 'bg-green-500';
-      case 'CO_GIOI': return 'bg-orange-500';
-      case 'CO_GIOI_NGOAI': return 'bg-purple-500';
-      default: return 'bg-gray-400';
+  const getDotColor = (type: string, isOutsourced?: boolean) => {
+    if (type === 'LABOR') return 'bg-green-500';
+    if (type === 'MECHANICAL') {
+      return isOutsourced ? 'bg-purple-500' : 'bg-orange-500';
     }
+    return 'bg-gray-400';
   }
 
   const getStatusBadge = (status: string) => {
@@ -438,9 +443,9 @@ const HistoryView: React.FC<HistoryViewProps> = ({ reports, workOrders, mode, on
       ) : (
         <>
           <div className="flex bg-gray-100 p-1 rounded-2xl print:hidden max-w-lg mx-auto overflow-x-auto">
-            <button onClick={() => setWoFilter('CONG_NHAN')} className={`flex-1 py-3 px-2 text-[10px] font-black uppercase rounded-xl whitespace-nowrap transition-all ${woFilter === 'CONG_NHAN' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-400'}`}>Công nhân</button>
-            <button onClick={() => setWoFilter('CO_GIOI')} className={`flex-1 py-3 px-2 text-[10px] font-black uppercase rounded-xl whitespace-nowrap transition-all ${woFilter === 'CO_GIOI' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-400'}`}>Cơ giới</button>
-            <button onClick={() => setWoFilter('CO_GIOI_NGOAI')} className={`flex-1 py-3 px-2 text-[10px] font-black uppercase rounded-xl whitespace-nowrap transition-all ${woFilter === 'CO_GIOI_NGOAI' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-400'}`}>Cơ giới ngoài</button>
+            <button onClick={() => setWoFilter('LABOR')} className={`flex-1 py-3 px-2 text-[10px] font-black uppercase rounded-xl whitespace-nowrap transition-all ${woFilter === 'LABOR' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-400'}`}>Công nhân</button>
+            <button onClick={() => setWoFilter('MECHANICAL')} className={`flex-1 py-3 px-2 text-[10px] font-black uppercase rounded-xl whitespace-nowrap transition-all ${woFilter === 'MECHANICAL' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-400'}`}>Cơ giới</button>
+            <button onClick={() => setWoFilter('MECHANICAL_EXTERNAL')} className={`flex-1 py-3 px-2 text-[10px] font-black uppercase rounded-xl whitespace-nowrap transition-all ${woFilter === 'MECHANICAL_EXTERNAL' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-400'}`}>Cơ giới ngoài</button>
           </div>
 
           <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 space-y-4 print:hidden">
@@ -453,7 +458,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ reports, workOrders, mode, on
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="relative" ref={orgDropdownRef}>
-                <label className="text-[9px] font-black text-gray-400 uppercase ml-1">{woFilter === 'CO_GIOI_NGOAI' ? 'Tên đơn vị' : 'Tên tổ / CN'}</label>
+                <label className="text-[9px] font-black text-gray-400 uppercase ml-1">{woFilter === 'MECHANICAL_EXTERNAL' ? 'Tên đơn vị' : 'Tên tổ / CN'}</label>
                 <div
                   className="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl flex items-center justify-between cursor-pointer"
                   onClick={() => setIsOrgDropdownOpen(!isOrgDropdownOpen)}

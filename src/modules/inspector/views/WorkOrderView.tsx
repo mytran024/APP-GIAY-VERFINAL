@@ -3,7 +3,7 @@ import { WorkOrder, TallyReport } from '../types';
 import WorkOrderPrintTemplate from '../components/WorkOrderPrintTemplate';
 
 interface WorkOrderViewProps {
-  type: 'CONG_NHAN' | 'CO_GIOI' | 'CO_GIOI_NGOAI';
+  type: 'LABOR' | 'MECHANICAL' | 'MECHANICAL_EXTERNAL';
   report: TallyReport;
   initialWO?: WorkOrder;
   onSave: (wo: WorkOrder, isDraft: boolean) => void;
@@ -20,15 +20,15 @@ const WorkOrderView: React.FC<WorkOrderViewProps> = ({ type, report, initialWO, 
     if (initialWO) {
       setFormData(initialWO);
     } else {
-      const names = type === 'CONG_NHAN' ? report.workerNames : report.mechanicalNames;
-      const defaultOrg = type === 'CONG_NHAN' ? 'Tổ CN' : 'Tổ CG';
+      const names = type === 'LABOR' ? report.workerNames : report.mechanicalNames;
+      const defaultOrg = type === 'LABOR' ? 'Tổ CN' : 'Tổ CG';
 
       setFormData({
         organization: names && names.trim() !== '' ? names : defaultOrg,
-        personCount: type === 'CONG_NHAN' ? report.workerCount : report.mechanicalCount,
-        vehicleType: type === 'CO_GIOI' ? report.vehicleType : '',
-        vehicleNo: type === 'CO_GIOI' ? report.vehicleNo : '',
-        handlingMethod: type === 'CONG_NHAN' ? 'Đóng mở Cont, Bấm Seal,\nquấn phủ bạt' : 'Nâng hàng từ cont <-> kho',
+        personCount: type === 'LABOR' ? report.workerCount : report.mechanicalCount,
+        vehicleType: type === 'MECHANICAL' ? report.vehicleType : '',
+        vehicleNo: type === 'MECHANICAL' ? report.vehicleNo : '',
+        handlingMethod: type === 'LABOR' ? 'Đóng mở Cont, Bấm Seal,\nquấn phủ bạt' : 'Nâng hàng từ cont <-> kho',
         commodityType: 'Giấy vuông',
         specification: `${report.items.length} Cont`,
         quantity: totalUnits,
@@ -44,8 +44,9 @@ const WorkOrderView: React.FC<WorkOrderViewProps> = ({ type, report, initialWO, 
       ...formData,
       id: formData.id || `WO-${Date.now()}-${type}`,
       reportId: report.id,
-      type,
-      status: isDraft ? 'NHAP' : 'HOAN_TAT'
+      type: type === 'LABOR' ? 'LABOR' : 'MECHANICAL',
+      isOutsourced: type === 'MECHANICAL_EXTERNAL',
+      status: isDraft ? 'PENDING' : 'COMPLETED'
     } as WorkOrder;
     onSave(wo, isDraft);
   };
@@ -54,9 +55,9 @@ const WorkOrderView: React.FC<WorkOrderViewProps> = ({ type, report, initialWO, 
     <div className="space-y-6 animate-fade-in pb-40">
       {/* Mobile App Interface */}
       <div className="print:hidden space-y-6">
-        <div className={`p-5 rounded-3xl shadow-lg text-white ${type === 'CONG_NHAN' ? 'bg-green-600' : (type === 'CO_GIOI_NGOAI' ? 'bg-purple-600' : 'bg-orange-600')}`}>
+        <div className={`p-5 rounded-3xl shadow-lg text-white ${type === 'LABOR' ? 'bg-green-600' : (type === 'MECHANICAL_EXTERNAL' ? 'bg-purple-600' : 'bg-orange-600')}`}>
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-black uppercase tracking-tighter">Phiếu công tác {type === 'CONG_NHAN' ? 'CN' : 'CG'}</h2>
+            <h2 className="text-xl font-black uppercase tracking-tighter">Phiếu công tác {type === 'LABOR' ? 'CN' : 'CG'}</h2>
             <span className="text-[10px] font-black bg-white/20 px-2 py-1 rounded-lg">CA {report.shift} • {report.workDate}</span>
           </div>
         </div>
@@ -65,33 +66,33 @@ const WorkOrderView: React.FC<WorkOrderViewProps> = ({ type, report, initialWO, 
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Tổ (Cá nhân)</label>
-              <textarea 
-                className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-100 min-h-[60px]" 
-                value={formData.organization || ''} 
-                onChange={e => setFormData({...formData, organization: e.target.value})} 
+              <textarea
+                className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-100 min-h-[60px]"
+                value={formData.organization || ''}
+                onChange={e => setFormData({ ...formData, organization: e.target.value })}
               />
             </div>
             <div>
               <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Số người</label>
-              <input type="number" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-sm outline-none" 
-                value={formData.personCount || 0} onChange={e => setFormData({...formData, personCount: parseInt(e.target.value) || 0})} />
+              <input type="number" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-sm outline-none"
+                value={formData.personCount || 0} onChange={e => setFormData({ ...formData, personCount: parseInt(e.target.value) || 0, peopleCount: parseInt(e.target.value) || 0 })} />
             </div>
-            <div className={type === 'CONG_NHAN' ? 'col-span-1' : 'col-span-2'}>
+            <div className={type === 'LABOR' ? 'col-span-1' : 'col-span-2'}>
               <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Số người làm công nhật</label>
-              <input type="number" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-sm outline-none" 
-                value={formData.dayLaborerCount || 0} onChange={e => setFormData({...formData, dayLaborerCount: parseInt(e.target.value) || 0})} />
+              <input type="number" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-sm outline-none"
+                value={formData.dayLaborerCount || 0} onChange={e => setFormData({ ...formData, dayLaborerCount: parseInt(e.target.value) || 0 })} />
             </div>
 
             <div className="col-span-2">
               <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Loại hàng</label>
-              <input className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-sm outline-none" 
-                value={formData.commodityType || ''} onChange={e => setFormData({...formData, commodityType: e.target.value})} />
+              <input className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-sm outline-none"
+                value={formData.commodityType || ''} onChange={e => setFormData({ ...formData, commodityType: e.target.value })} />
             </div>
 
             <div className="col-span-2">
               <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Phương án bốc dỡ</label>
-              <textarea className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-sm outline-none min-h-[80px]" 
-                value={formData.handlingMethod || ''} onChange={e => setFormData({...formData, handlingMethod: e.target.value})} />
+              <textarea className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-sm outline-none min-h-[80px]"
+                value={formData.handlingMethod || ''} onChange={e => setFormData({ ...formData, handlingMethod: e.target.value })} />
             </div>
 
             <div>
@@ -113,8 +114,8 @@ const WorkOrderView: React.FC<WorkOrderViewProps> = ({ type, report, initialWO, 
             </div>
             <div>
               <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Ghi chú</label>
-              <input className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl font-medium text-sm" 
-                value={formData.note || ''} onChange={e => setFormData({...formData, note: e.target.value})} />
+              <input className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl font-medium text-sm"
+                value={formData.note || ''} onChange={e => setFormData({ ...formData, note: e.target.value })} />
             </div>
           </div>
         </div>
@@ -124,7 +125,7 @@ const WorkOrderView: React.FC<WorkOrderViewProps> = ({ type, report, initialWO, 
             <button onClick={() => handleAction(true)} className="py-4 bg-gray-100 text-gray-600 font-black rounded-2xl uppercase text-[11px] active:scale-95 transition-all">
               Lưu nháp
             </button>
-            <button onClick={() => handleAction(false)} className={`py-4 font-black rounded-2xl text-white uppercase text-[11px] shadow-xl active:scale-95 transition-all ${type === 'CONG_NHAN' ? 'bg-green-600' : 'bg-orange-600'}`}>
+            <button onClick={() => handleAction(false)} className={`py-4 font-black rounded-2xl text-white uppercase text-[11px] shadow-xl active:scale-95 transition-all ${type === 'LABOR' ? 'bg-green-600' : 'bg-orange-600'}`}>
               Hoàn tất & In
             </button>
           </div>
