@@ -271,22 +271,18 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
         createSubReports(groupedItems.container, 'CONTAINER');
         createSubReports(groupedItems.flatbed, 'XE_THOT');
 
-        // DB SAVE (Async & Strict) - Save reports and get back generated UUIDs
-        const savedReportIds = new Map<string, string>(); // originalId -> dbId
+        // DB SAVE (Batch & Strict) - Save all reports at once
+        const { success: reportsSuccess, ids: dbReportIds, error: reportsError } = await db.upsertTallyReports(finalReports);
 
-        for (const r of finalReports) {
-          const { success, id: dbId, error } = await db.upsertTallyReport(r);
-          if (!success) {
-            console.error(`Failed to save report ${r.id}`, error);
-            const errorMsg = typeof error === 'object' && error !== null ? (error.message || JSON.stringify(error)) : error;
-            alert(`Lỗi lưu phiếu Tally ${r.id}: ${errorMsg}`);
-            hasError = true;
-          } else if (dbId) {
-            // Store mapping: original local ID -> database UUID
-            savedReportIds.set(r.id, dbId);
-            // Update the report object with the real DB ID
-            r.id = dbId;
-          }
+        if (!reportsSuccess) {
+          const errorMsg = typeof reportsError === 'object' && reportsError !== null ? (reportsError.message || JSON.stringify(reportsError)) : reportsError;
+          alert(`Lỗi lưu phiếu Tally: ${errorMsg}`);
+          hasError = true;
+        } else if (dbReportIds) {
+          // Update the report objects with the real DB IDs for Work Order linking
+          finalReports.forEach((r, idx) => {
+            r.id = dbReportIds[idx];
+          });
         }
 
         // Update Local State with proper DB IDs
@@ -414,12 +410,19 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
           const woCN: WorkOrder = {
             id: generateId('WO-CN', newWOs.length),
             reportId: r.id,
-            vesselId: r.vesselId, // Added vesselId
-            type: 'CONG_NHAN',
+            vesselId: r.vesselId,
+            type: 'LABOR' as any,
+            businessType: r.mode === 'NHAP' ? 'IMPORT' : 'EXPORT',
+            teamName: r.workerNames || 'Tổ Công Nhân',
             organization: r.workerNames || 'Tổ Công Nhân',
+            peopleCount: r.workerCount,
             personCount: r.workerCount,
             vehicleType: '',
             vehicleNo: '',
+            containerIds: r.items.map(i => i.contId).filter(Boolean),
+            containerNos: r.items.map(i => i.contNo).filter(Boolean),
+            shift: r.shift,
+            date: r.workDate,
             handlingMethod: workerHandlingMethod,
             commodityType: 'Giấy vuông',
             specification: `${r.items.length} ${unitLabel}`,
@@ -427,7 +430,7 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
             weight: totalWeight,
             dayLaborerCount: 0,
             note: '',
-            status: 'COMPLETED' as any // Cast to match DB enum or Inspector string
+            status: 'COMPLETED' as any
           };
           newWOs.push(woCN);
 
@@ -448,19 +451,25 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
               const woMech: WorkOrder = {
                 id: generateId(isExternal ? 'WO-CG-EXT' : 'WO-CG', newWOs.length),
                 reportId: r.id,
-                vesselId: r.vesselId, // Added vesselId
-                type: isExternal ? 'CO_GIOI_NGOAI' : 'CO_GIOI',
-                // Fix: Use the unique external unit name instead of generic "Cơ Giới Ngoài" if available
+                vesselId: r.vesselId,
+                type: 'MECHANICAL' as any,
+                businessType: r.mode === 'NHAP' ? 'IMPORT' : 'EXPORT',
+                isOutsourced: isExternal,
+                teamName: isExternal ? uniqueNames : (uniqueNames || r.mechanicalNames || 'Tổ Cơ Giới'),
                 organization: isExternal ? uniqueNames : (uniqueNames || r.mechanicalNames || 'Tổ Cơ Giới'),
+                peopleCount: mechs.length,
                 personCount: mechs.length,
                 vehicleType: r.vehicleType,
                 vehicleNo: isExternal ? '' : r.vehicleNo,
+                containerIds: r.items.map(i => i.contId).filter(Boolean),
+                containerNos: r.items.map(i => i.contNo).filter(Boolean),
+                shift: r.shift,
+                date: r.workDate,
                 handlingMethod: task,
                 commodityType: 'Giấy vuông',
                 specification: `${r.items.length} ${unitLabel}`,
                 quantity: totalUnits,
                 weight: totalWeight,
-
                 dayLaborerCount: 0,
                 note: isExternal ? `Thuê ngoài: ${uniqueNames}` : `Lái xe: ${uniqueNames}`,
                 status: 'COMPLETED' as any
@@ -472,18 +481,24 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
               const woCG: WorkOrder = {
                 id: generateId('WO-CG-LEGACY', newWOs.length),
                 reportId: r.id,
-                vesselId: r.vesselId, // Added vesselId
-                type: 'CO_GIOI',
+                vesselId: r.vesselId,
+                type: 'MECHANICAL' as any,
+                businessType: r.mode === 'NHAP' ? 'IMPORT' : 'EXPORT',
+                teamName: r.mechanicalNames || 'Tổ Cơ Giới DNL',
                 organization: r.mechanicalNames || 'Tổ Cơ Giới DNL',
+                peopleCount: r.mechanicalCount,
                 personCount: r.mechanicalCount,
                 vehicleType: r.vehicleType,
                 vehicleNo: r.vehicleNo,
+                containerIds: r.items.map(i => i.contId).filter(Boolean),
+                containerNos: r.items.map(i => i.contNo).filter(Boolean),
+                shift: r.shift,
+                date: r.workDate,
                 handlingMethod: r.mode === 'NHAP' ? 'Cont -> Cửa kho' : 'Cửa kho -> Lên xe',
                 commodityType: 'Giấy vuông',
                 specification: `${r.items.length} ${unitLabel}`,
                 quantity: totalUnits,
                 weight: totalWeight,
-
                 dayLaborerCount: 0,
                 note: '',
                 status: 'COMPLETED' as any
@@ -495,13 +510,11 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
 
         setAllWorkOrders(prev => [...newWOs, ...prev]);
 
-        // DB Save WOs (Strict)
-        for (const wo of newWOs) {
-          const { error: woError } = await db.upsertWorkOrder(wo as any);
-          if (woError) {
-            console.error(`Failed to save Work Order ${wo.id}`, woError);
-            hasError = true;
-          }
+        // DB Save WOs (Batch & Strict)
+        const { success: woBatchSuccess, error: woBatchError } = await db.upsertWorkOrders(newWOs as any);
+        if (!woBatchSuccess) {
+          console.error(`Failed to batch save Work Orders`, woBatchError);
+          hasError = true;
         }
 
         setLastCreatedWOs(newWOs);

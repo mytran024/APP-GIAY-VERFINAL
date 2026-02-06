@@ -113,66 +113,8 @@ const TallyReview: React.FC<{ containers: Container[], vessels: Vessel[], onUpda
 
   const reportGroups = useMemo(() => {
     const groups: TallyReportGroup[] = [];
-    let filteredContainers = containers.filter(c => {
-      if (activeFilter === 'EXPORT') return c.unitType === 'VEHICLE';
-      return c.unitType === 'CONTAINER' && c.status === ContainerStatus.COMPLETED;
-    });
 
-    if (selectedVesselId !== 'ALL') filteredContainers = filteredContainers.filter(c => c.vesselId === selectedVesselId);
-
-    if (monthYearFilter !== 'ALL') {
-      const [m, y] = monthYearFilter.split('/');
-      filteredContainers = filteredContainers.filter(c => {
-        const d = new Date(c.updatedAt);
-        return (d.getMonth() + 1).toString().padStart(2, '0') === m && d.getFullYear().toString() === y;
-      });
-    }
-
-    if (startDate || endDate) {
-      filteredContainers = filteredContainers.filter(c => {
-        const dateStr = c.updatedAt.split('T')[0];
-        if (startDate && dateStr < startDate) return false;
-        if (endDate && dateStr > endDate) return false;
-        return true;
-      });
-    }
-
-    const targetVessels = selectedVesselId === 'ALL' ? vessels : vessels.filter(v => v.id === selectedVesselId);
-
-    targetVessels.forEach(vessel => {
-      const vesselData = filteredContainers.filter(c => c.vesselId === vessel.id);
-      if (vesselData.length === 0) return;
-      const vesselCode = vessel.vesselName.split(' ').pop() || vessel.vesselName;
-
-
-      for (let i = 0; i < vesselData.length; i += 15) {
-        const chunk = vesselData.slice(i, i + 15);
-        const reportIndex = Math.floor(i / 15) + 34;
-        let dateObj = new Date(chunk[0].updatedAt);
-        if (isNaN(dateObj.getTime())) {
-          dateObj = new Date();
-        }
-
-        groups.push({
-          id: `REP-${activeFilter}-${vessel.id}-${reportIndex}`,
-          vesselId: vessel.id,
-          vesselName: vessel.vesselName,
-          vesselCode: vesselCode,
-          shift: "2",
-          day: String(dateObj.getDate()).padStart(2, '0'),
-          month: String(dateObj.getMonth() + 1).padStart(2, '0'),
-          year: String(dateObj.getFullYear()),
-          dateStr: dateObj.toISOString().split('T')[0],
-          reportNo: `${reportIndex}`,
-          consignee: vessel.consignee,
-          commodity: vessel.commodity,
-          containers: chunk,
-          type: activeFilter
-        });
-      }
-    });
-
-    // --- INTEGRATE SYNCED REPORTS FROM INSPECTOR ---
+    // --- ONLY USE REAL SYNCED REPORTS FROM DATABASE ---
     if (reports && reports.length > 0) {
       reports.forEach(r => {
         // Filter by active tab (IMPORT/EXPORT)
@@ -209,7 +151,6 @@ const TallyReview: React.FC<{ containers: Container[], vessels: Vessel[], onUpda
           sealNo: item.sealNo,
           pkgs: item.actualUnits,
           weight: item.actualWeight,
-          // Extra logic for distinguishing vehicle vs container if needed
         }));
 
         groups.push({
@@ -222,7 +163,7 @@ const TallyReview: React.FC<{ containers: Container[], vessels: Vessel[], onUpda
           month,
           year,
           dateStr: r.workDate,
-          reportNo: r.id.split('-').pop() || '00', // Extract seq from ID if needed
+          reportNo: r.id.split('-').pop() || '00',
           consignee: consignee,
           commodity: commodity,
           containers: mappedContainers,
@@ -230,15 +171,6 @@ const TallyReview: React.FC<{ containers: Container[], vessels: Vessel[], onUpda
         });
       });
     }
-
-    // Deduplicate? If we have both simulated and real, maybe prefer real?
-    // For now, let's just show both but we might want to disable the simulated ones if we have real data.
-    // However, the prompt implies "sync", so we assume the existing local "containers" are still valid for internal CS tracking,
-    // but the Reports come from Inspectors.
-    // The previous logic generated reports from containers marked as COMPLETED.
-    // If the Inspector creates the report, it is the source of truth.
-    // Maybe filtering out the "simulated" ones if we have real ones for the same vessel? 
-    // Let's keep it simple and just append for now, grouping by date sort.
 
     return groups.sort((a, b) => b.dateStr.localeCompare(a.dateStr));
   }, [containers, vessels, activeFilter, selectedVesselId, monthYearFilter, startDate, endDate, reports]);

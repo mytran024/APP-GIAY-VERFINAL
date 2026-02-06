@@ -403,6 +403,96 @@ export const db = {
         return { success: true, id: reportId };
     },
 
+    upsertTallyReports: async (reports: TallyReport[]): Promise<{ success: boolean, ids?: string[], error?: any }> => {
+        if (!reports || reports.length === 0) return { success: true, ids: [] };
+
+        // 1. Prepare Report Payloads
+        const reportPayloads = reports.map(report => {
+            const isUpdate = db._isValidUUID(report.id);
+            const payload: any = {
+                vessel_id: report.vesselId,
+                mode: report.mode,
+                shift: report.shift,
+                work_date: report.workDate || null,
+                owner: report.owner,
+                worker_count: report.workerCount,
+                worker_names: report.workerNames,
+                mechanical_count: report.mechanicalCount,
+                mechanical_names: report.mechanicalNames,
+                external_mechanical_count: report.externalMechanicalCount || 0,
+                mechanical_details: report.mechanicalDetails || null,
+                equipment: report.equipment,
+                vehicle_no: report.vehicleNo,
+                vehicle_type: report.vehicleType,
+                vehicle_category: report.vehicleCategory,
+                status: report.status,
+                created_by: report.createdBy,
+                proof_image_url: report.proofImageUrl
+            };
+            if (isUpdate) payload.id = report.id;
+            return payload;
+        });
+
+        // 2. Batch Upsert Reports
+        const { data: savedReports, error: rError } = await supabase
+            .from('tally_reports')
+            .upsert(reportPayloads)
+            .select('id');
+
+        if (rError) {
+            console.error("Error batch saving Tally Reports:", rError);
+            return { success: false, error: rError };
+        }
+
+        const reportIds = savedReports.map(r => r.id);
+
+        // 3. Prepare Item Payloads
+        const allItemsPayload: any[] = [];
+        reports.forEach((report, idx) => {
+            const dbReportId = reportIds[idx];
+            if (report.items && report.items.length > 0) {
+                report.items.forEach(i => {
+                    allItemsPayload.push({
+                        report_id: dbReportId,
+                        cont_id: i.contId,
+                        cont_no: i.contNo,
+                        size: i.size,
+                        commodity_type: i.commodityType,
+                        seal_no: i.sealNo,
+                        seal_count: i.sealCount || 0,
+                        actual_units: i.actualUnits,
+                        actual_weight: i.actualWeight,
+                        is_scratched_floor: i.isScratchedFloor,
+                        torn_units: i.tornUnits,
+                        notes: i.notes || '',
+                        transport_vehicle: i.transportVehicle || '',
+                        photos: i.photos || []
+                    });
+                });
+            }
+        });
+
+        // 4. Clean up old items & Batch Insert New Items
+        if (allItemsPayload.length > 0) {
+            // Delete existing items for these specific reports
+            await supabase.from('tally_items').delete().in('report_id', reportIds);
+
+            // Insert in chunks to avoid size limits
+            const CHUNK_SIZE = 50;
+            for (let i = 0; i < allItemsPayload.length; i += CHUNK_SIZE) {
+                const chunk = allItemsPayload.slice(i, i + CHUNK_SIZE);
+                const { error: iError } = await supabase.from('tally_items').insert(chunk);
+                if (iError) {
+                    console.error("Error batch saving items:", iError);
+                    return { success: false, error: iError };
+                }
+            }
+        }
+
+        return { success: true, ids: reportIds };
+    },
+
+
     // --- WORK ORDERS ---
     getWorkOrders: async (): Promise<WorkOrder[]> => {
         const { data, error } = await supabase
@@ -486,6 +576,54 @@ export const db = {
         }
         return { data: data as any, error: null };
     },
+
+    upsertWorkOrders: async (wos: WorkOrder[]): Promise<{ success: boolean, error?: any }> => {
+        if (!wos || wos.length === 0) return { success: true };
+
+        const payloads = wos.map(wo => {
+            const isUpdate = db._isValidUUID(wo.id);
+            const hasValidReportId = db._isValidUUID(wo.reportId || '');
+
+            const payload: any = {
+                vessel_id: wo.vesselId,
+                type: wo.type,
+                business_type: wo.businessType,
+                status: wo.status,
+                team_name: wo.teamName || (wo as any).organization,
+                worker_names: wo.workerNames,
+                people_count: wo.peopleCount || 0,
+                vehicle_nos: wo.vehicleNos,
+                vehicle_type: wo.vehicleType,
+                container_ids: wo.containerIds,
+                container_nos: wo.containerNos,
+                shift: wo.shift,
+                date: wo.date || null,
+                items: wo.items,
+                handling_method: wo.handlingMethod,
+                commodity_type: wo.commodityType,
+                specification: wo.specification,
+                quantity: wo.quantity,
+                weight: wo.weight,
+                day_laborer_count: wo.dayLaborerCount,
+                note: wo.note,
+                is_holiday: wo.isHoliday,
+                is_weekend: wo.isWeekend,
+                is_outsourced: wo.isOutsourced
+            };
+
+            if (isUpdate) payload.id = wo.id;
+            if (hasValidReportId) payload.report_id = wo.reportId;
+            return payload;
+        });
+
+        const { error } = await supabase.from('work_orders').upsert(payloads);
+        if (error) {
+            console.error("Error batch saving Work Orders:", error);
+            return { success: false, error };
+        }
+        return { success: true };
+    },
+
 
     deleteWorkOrder: async (id: string): Promise<boolean> => {
         const { error } = await supabase.from('work_orders').delete().eq('id', id);

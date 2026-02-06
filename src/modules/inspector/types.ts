@@ -82,10 +82,15 @@ export interface TallyReport {
 export interface WorkOrder {
   id: string;
   reportId: string;
-  vesselId: string; // Added for CS/ADMIN filtering
-  type: 'CONG_NHAN' | 'CO_GIOI' | 'CO_GIOI_NGOAI';
+  vesselId: string;
+  type: 'LABOR' | 'MECHANICAL'; // Aligned with WorkOrderType
+  businessType?: 'IMPORT' | 'EXPORT';
+  containerIds?: string[];
+  containerNos?: string[];
+  teamName?: string;
   organization: string;
   personCount: number;
+  peopleCount: number;
   vehicleType: string;
   vehicleNo: string;
   handlingMethod: string;
@@ -95,7 +100,15 @@ export interface WorkOrder {
   weight: number;
   dayLaborerCount: number;
   note: string;
-  status: 'NHAP' | 'HOAN_TAT';
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'; // Aligned with WorkOrderStatus
+  isHoliday?: boolean;
+  isWeekend?: boolean;
+  isOutsourced?: boolean;
+  date?: string;
+  shift?: string;
+  workerNames?: string[];
+  vehicleNos?: string[];
+  items?: any[];
 }
 
 export interface Vessel {
