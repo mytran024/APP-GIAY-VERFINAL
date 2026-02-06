@@ -237,7 +237,7 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
     }
     dateStr = dateStr || new Date().toLocaleDateString('en-GB');
 
-    const isLabor = wo.type === 'CONG_NHAN';
+    const isLabor = wo.type === 'CONG_NHAN' || wo.type === 'LABOR' || wo.type === WorkOrderType.LABOR;
     const totalUnits = wo.quantity || (report?.items.reduce((sum: number, i: any) => sum + i.actualUnits, 0)) || 0;
     const totalWeight = wo.weight || (report?.items.reduce((sum: number, i: any) => sum + i.actualWeight, 0)) || 0;
 
