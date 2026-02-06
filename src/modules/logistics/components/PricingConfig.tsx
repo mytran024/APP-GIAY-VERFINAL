@@ -25,6 +25,15 @@ const PricingConfigPage: React.FC<PricingConfigProps> = ({ prices, onUpdatePrice
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [batchAction, setBatchAction] = useState({ type: 'PERCENT', value: 0, unit: '' });
 
+  // New Method Modal State
+  const [showAddMethodModal, setShowAddMethodModal] = useState(false);
+  const [newMethod, setNewMethod] = useState<Partial<ServicePrice>>({
+    name: '',
+    unit: 'đồng/tấn',
+    price: 0,
+    subGroup: 'LABOR'
+  });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredPrices = useMemo(() => {
@@ -189,6 +198,26 @@ const PricingConfigPage: React.FC<PricingConfigProps> = ({ prices, onUpdatePrice
     }
   };
 
+  const handleAddMethod = () => {
+    if (!newMethod.name?.trim()) {
+      alert("Vui lòng nhập tên phương án!");
+      return;
+    }
+    const newPrice: ServicePrice = {
+      id: `meth_${Math.random().toString(36).substr(2, 8)}`,
+      name: newMethod.name.trim(),
+      unit: newMethod.unit || 'đồng/tấn',
+      price: newMethod.price || 0,
+      category: (newMethod.unit?.toLowerCase().includes('tấn') ? 'WEIGHT' : 'UNIT') as 'WEIGHT' | 'UNIT',
+      group: activeGroup as 'GENERAL' | 'METHOD',
+      businessType: businessFilter,
+      subGroup: newMethod.subGroup as 'LABOR' | 'MECHANICAL'
+    };
+    onUpdatePrices([newPrice, ...prices]);
+    setShowAddMethodModal(false);
+    setNewMethod({ name: '', unit: 'đồng/tấn', price: 0, subGroup: 'LABOR' });
+  };
+
   /* Consignee Handlers */
   const handleAddConsignee = () => {
     const newConsignee: Consignee = {
@@ -252,7 +281,14 @@ const PricingConfigPage: React.FC<PricingConfigProps> = ({ prices, onUpdatePrice
               <Plus className="w-4 h-4" /> THÊM CHỦ HÀNG
             </button>
           ) : (
-            <button onClick={() => fileInputRef.current?.click()} className="px-6 py-3 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase hover:bg-blue-700 shadow-xl flex items-center gap-2 transition-all">Import Excel</button>
+            <>
+              {activeGroup === 'METHOD' && (
+                <button onClick={() => setShowAddMethodModal(true)} className="px-6 py-3 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase hover:bg-emerald-700 shadow-xl flex items-center gap-2 transition-all">
+                  <Plus className="w-4 h-4" /> THÊM PHƯƠNG ÁN
+                </button>
+              )}
+              <button onClick={() => fileInputRef.current?.click()} className="px-6 py-3 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase hover:bg-blue-700 shadow-xl flex items-center gap-2 transition-all">Import Excel</button>
+            </>
           )}
         </div>
       </div>
@@ -425,6 +461,83 @@ const PricingConfigPage: React.FC<PricingConfigProps> = ({ prices, onUpdatePrice
               <div className="pt-4 flex gap-3">
                 <button onClick={applyBatchEdit} className="flex-1 py-5 bg-blue-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-[0.2em]">ÁP DỤNG</button>
                 <button onClick={() => setShowBatchModal(false)} className="px-10 py-5 bg-slate-100 text-slate-500 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em]">HUỶ</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Method Modal */}
+      {showAddMethodModal && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[500] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-lg rounded-[3rem] overflow-hidden shadow-2xl animate-slideUp">
+            <div className="p-8 bg-emerald-600 text-white">
+              <h3 className="text-xl font-black uppercase">Thêm Phương Án Mới</h3>
+              <p className="text-emerald-200 text-xs mt-1">Nghiệp vụ: {businessFilter === BusinessType.IMPORT ? 'Hàng Nhập' : 'Hàng Xuất'}</p>
+            </div>
+            <div className="p-10 space-y-6">
+              {/* Tên phương án */}
+              <div className="space-y-2">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Dịch vụ / Phương án</label>
+                <input
+                  type="text"
+                  value={newMethod.name || ''}
+                  onChange={e => setNewMethod({ ...newMethod, name: e.target.value })}
+                  className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 text-lg font-bold text-slate-800 focus:border-emerald-500 outline-none transition-all"
+                  placeholder="Ví dụ: Cont -> Cửa kho"
+                />
+              </div>
+
+              {/* Đối tượng - Công nhân / Cơ giới */}
+              <div className="space-y-2">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Đối tượng thực hiện</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setNewMethod({ ...newMethod, subGroup: 'LABOR' })}
+                    className={`py-4 rounded-2xl font-black uppercase text-[11px] border-2 transition-all ${newMethod.subGroup === 'LABOR' ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-400'}`}
+                  >
+                    👷 Công nhân
+                  </button>
+                  <button
+                    onClick={() => setNewMethod({ ...newMethod, subGroup: 'MECHANICAL' })}
+                    className={`py-4 rounded-2xl font-black uppercase text-[11px] border-2 transition-all ${newMethod.subGroup === 'MECHANICAL' ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-400'}`}
+                  >
+                    🚜 Cơ giới
+                  </button>
+                </div>
+              </div>
+
+              {/* Đơn vị */}
+              <div className="space-y-2">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Đơn vị tính</label>
+                <select
+                  value={newMethod.unit || 'đồng/tấn'}
+                  onChange={e => setNewMethod({ ...newMethod, unit: e.target.value })}
+                  className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-600 focus:border-emerald-500 outline-none"
+                >
+                  <option value="đồng/tấn">đồng/tấn</option>
+                  <option value="đồng/cont">đồng/cont</option>
+                  <option value="đồng/kiện">đồng/kiện</option>
+                  <option value="đồng/xe">đồng/xe</option>
+                </select>
+              </div>
+
+              {/* Đơn giá */}
+              <div className="space-y-2">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Đơn giá (VNĐ)</label>
+                <input
+                  type="number"
+                  value={newMethod.price || 0}
+                  onChange={e => setNewMethod({ ...newMethod, price: parseInt(e.target.value) || 0 })}
+                  className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 text-2xl font-black text-emerald-600 text-center focus:border-emerald-500 outline-none"
+                  placeholder="0"
+                />
+              </div>
+
+              {/* Buttons */}
+              <div className="pt-4 flex gap-3">
+                <button onClick={handleAddMethod} className="flex-1 py-5 bg-emerald-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] hover:bg-emerald-700 transition-all shadow-lg">LƯU PHƯƠNG ÁN</button>
+                <button onClick={() => { setShowAddMethodModal(false); setNewMethod({ name: '', unit: 'đồng/tấn', price: 0, subGroup: 'LABOR' }); }} className="px-10 py-5 bg-slate-100 text-slate-500 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] hover:bg-slate-200">HUỶ</button>
               </div>
             </div>
           </div>
