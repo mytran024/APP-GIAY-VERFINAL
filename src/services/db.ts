@@ -256,7 +256,7 @@ export const db = {
             .select(`
         id,
         vesselId:vessel_id,
-        vessel:vessels(name),
+        vessels(name),
         mode,
         shift,
         workDate:work_date,
@@ -273,7 +273,6 @@ export const db = {
         vehicleCategory:vehicle_category,
         status,
         createdBy:created_by,
-        creator:system_users(name),
         createdAt:created_at,
         proofImageUrl:proof_image_url,
         tally_items (
@@ -301,12 +300,12 @@ export const db = {
 
         return data.map((r: any) => {
             // Reconstruct the report with joined data if available
-            const vesselName = r.vessel?.name || "";
-            const creatorName = r.creator?.name || r.createdBy || "Kiểm viên";
+            const vesselName = r.vessels?.name || "";
+            const creatorName = r.createdBy || "Kiểm viên";
 
             return {
                 ...r,
-                vesselName, // For display in UI if needed
+                vesselName,
                 creatorName,
                 items: r.tally_items.map((i: any) => ({
                     contId: i.cont_id,
@@ -501,7 +500,7 @@ export const db = {
                 id,
                 reportId:report_id,
                 vesselId:vessel_id,
-                vessel:vessels(name),
+                vessels(name),
                 type,
                 businessType:business_type,
                 status,
@@ -531,7 +530,7 @@ export const db = {
 
         return data.map((wo: any) => ({
             ...wo,
-            vesselName: wo.vessel?.name || ""
+            vesselName: wo.vessels?.name || ""
         })) as any as WorkOrder[];
     },
 
