@@ -88,11 +88,8 @@ const TallyPrintTemplate: React.FC<TallyPrintTemplateProps> = ({ report, vessel,
             -webkit-print-color-adjust: exact !important; 
             print-color-adjust: exact !important; 
           }
-          .page-break { 
-            page-break-after: always; 
-          }
           .page-break:last-of-type {
-            page-break-after: auto;
+            page-break-after: avoid !important;
           }
         }
       `}</style>
@@ -226,14 +223,6 @@ const TallyPrintTemplate: React.FC<TallyPrintTemplateProps> = ({ report, vessel,
                       <td className="text-center">{item.actualUnits} Kiện</td>
                       <td className="text-center text-[9pt]">{getNoteContent(item)}</td>
                       <td></td>
-                    </tr>
-                  ))}
-                  {Array.from({ length: Math.max(0, ITEMS_PER_PAGE - chunk.length) }).map((_, i) => (
-                    <tr key={`pad-${i}`} className="h-[28px]">
-                      <td></td><td></td>
-                      <td style={{ borderRight: 'none' }}></td>
-                      <td style={{ borderLeft: 'none' }}></td>
-                      <td></td><td></td><td></td>
                     </tr>
                   ))}
 
@@ -410,11 +399,6 @@ const TallyPrintTemplate: React.FC<TallyPrintTemplateProps> = ({ report, vessel,
                     <td className="font-bold">{item.contNo}</td>
                     <td className="text-left px-2">{item.sealNo}</td>
                     <td className="font-bold">{item.actualUnits}K = {item.actualWeight}T</td>
-                  </tr>
-                ))}
-                {Array.from({ length: Math.max(0, ITEMS_PER_PAGE - chunk.length) }).map((_, i) => (
-                  <tr key={`pad-${i}`} className="h-[32px]">
-                    <td></td><td></td><td></td><td></td>
                   </tr>
                 ))}
               </tbody>

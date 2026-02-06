@@ -350,7 +350,15 @@ const TallyReportView: React.FC<TallyReportViewProps> = ({ vessel, shift, mode, 
   }, [vessel.id, mode, propContainers, exportVehicles, weightFactor]);
 
   const filteredSearchContainers = availableContainers.filter(c => {
-    const isExploitable = mode === 'XUAT' || (c.tkHouse && c.tkDnl);
+    // Container phải có đủ 5 trường bắt buộc mới được hiện (chỉ áp dụng cho NHẬP)
+    const hasRequiredFields =
+      c.tkHouse && c.tkHouse.trim() !== '' &&      // Tờ khai Nhà VC
+      c.tkDnl && c.tkDnl.trim() !== '' &&          // Tờ khai DNL
+      c.sealNo && c.sealNo.trim() !== '' &&        // Số Seal
+      c.expectedUnits && c.expectedUnits > 0 &&    // Số kiện
+      c.expectedWeight && c.expectedWeight > 0;    // Số tấn
+
+    const isExploitable = mode === 'XUAT' || hasRequiredFields;
     if (!isExploitable) return false;
 
     const isAlreadyAdded = mode !== 'XUAT' && currentReport.items?.some(i => i.contId === c.id);

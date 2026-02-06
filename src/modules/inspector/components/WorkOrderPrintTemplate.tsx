@@ -21,13 +21,14 @@ const WorkOrderPrintTemplate: React.FC<WorkOrderPrintTemplateProps> = ({ wo, rep
 
       <style>{`
         @media print {
-          @page { size: landscape; margin: 0; }
+          @page { size: landscape; margin: 10mm; }
           body { 
             -webkit-print-color-adjust: exact !important; 
             print-color-adjust: exact !important; 
           }
-          .page-break-after-always { 
-            page-break-after: always;
+          .print-wo-document { 
+            page-break-inside: avoid;
+            page-break-after: avoid;
           }
         }
       `}</style>
@@ -144,9 +145,6 @@ const WorkOrderPrintTemplate: React.FC<WorkOrderPrintTemplateProps> = ({ wo, rep
           <p className="italic text-[9pt] mb-8">(Ghi rõ họ tên)</p>
         </div>
       </div>
-
-      {/* Footer line spacing for print */}
-      {!isPreview && <div className="h-10"></div>}
     </div>
   );
 };
