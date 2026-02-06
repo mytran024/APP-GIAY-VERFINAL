@@ -202,7 +202,7 @@ export const processImportData = (
       vendor,
       detExpiry,
       tkNhaVC: String(vcDeclaration).toUpperCase(),
-      ngayTkNhaVC: normalizeDate(getValue(row, ['ngayTkNhaVC', 'THỜI GIAN KHAI HQ', 'NGÀY TỜ KHAI', 'NGÀY TK']) || ''),
+      ngayTkNhaVC: normalizeDate(getValue(row, ['ngayTkNhaVC', 'THỜI GIAN KHAI HQ', 'NGÀY TỜ KHAI', 'NGÀY TK', 'transport_decl_date']) || ''),
       tkDnlOla: String(dnlDeclaration).toUpperCase(),
       ngayTkDnl: normalizeDate(getValue(row, ['ngayTkDnl', 'NGÀY TK DNL', 'THỜI GIAN DNL']) || ''),
       ngayKeHoach,

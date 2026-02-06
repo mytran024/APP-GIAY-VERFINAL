@@ -63,9 +63,9 @@ const IMPORT_COLUMNS: ColumnConfig[] = [
   { id: 'detExpiry', label: 'HẠN DET', width: 90 },
   { id: 'noiHaRong', label: 'NƠI HẠ RỖNG', width: 120 },
   { id: 'status', label: 'TRẠNG THÁI', width: 130 },
-  { id: 'inspector', label: 'KIỂM VIÊN', width: 100 },
-  { id: 'shift', label: 'CA', width: 50 },
-  { id: 'images', label: 'ẢNH', width: 50 },
+  // { id: 'inspector', label: 'KIỂM VIÊN', width: 100 },
+  // { id: 'shift', label: 'CA', width: 50 },
+  // { id: 'images', label: 'ẢNH', width: 50 },
   { id: 'actions', label: 'THAO TÁC', width: 80 },
 ];
 
@@ -76,9 +76,9 @@ const EXPORT_COLUMNS: ColumnConfig[] = [
   { id: 'romocNo', label: 'SỐ MOOC', width: 100 },
   { id: 'romocReg', label: 'ĐĂNG KIỂM', width: 85 },
   { id: 'status', label: 'TRẠNG THÁI', width: 110 }, // Added Status
-  { id: 'inspector', label: 'KIỂM VIÊN', width: 100 },
-  { id: 'shift', label: 'CA', width: 50 },
-  { id: 'images', label: 'ẢNH', width: 50 },
+  // { id: 'inspector', label: 'KIỂM VIÊN', width: 100 },
+  // { id: 'shift', label: 'CA', width: 50 },
+  // { id: 'images', label: 'ẢNH', width: 50 },
   { id: 'driverName', label: 'LÁI XE', width: 150 },
   { id: 'idCard', label: 'CCCD', width: 120 },
   { id: 'phone', label: 'SĐT', width: 100 },
@@ -153,9 +153,11 @@ const VesselImport: React.FC<VesselImportProps> = ({
   const mismatchedTKs = useMemo(() => {
     const ids = new Set<string>();
     vesselContainers.forEach(c => {
-      const isWrong = (c.customsPkgs !== undefined && c.customsPkgs !== c.pkgs) ||
-        (c.customsWeight !== undefined && c.customsWeight !== c.weight);
-      if (isWrong && c.tkNhaVC) ids.add(c.tkNhaVC);
+      // Logic Match: Tolerance 0.01 for weight
+      const isPkgsWrong = c.customsPkgs !== undefined && c.customsPkgs !== c.pkgs;
+      const isWeightWrong = c.customsWeight !== undefined && Math.abs(c.customsWeight - c.weight) > 0.01;
+
+      if ((isPkgsWrong || isWeightWrong) && c.tkNhaVC) ids.add(c.tkNhaVC);
     });
     return ids;
   }, [vesselContainers]);
