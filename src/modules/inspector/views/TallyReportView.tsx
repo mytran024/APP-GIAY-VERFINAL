@@ -13,7 +13,7 @@ interface TallyReportViewProps {
   workDate: string;
   user: string;
   initialReport?: TallyReport;
-  onSave: (report: TallyReport, isDraft: boolean) => void;
+  onSave: (report: TallyReport, isDraft: boolean) => Promise<void>;
   onFinish: () => void;
   onBack: () => void;
   availableContainers?: Container[];
@@ -513,7 +513,7 @@ const TallyReportView: React.FC<TallyReportViewProps> = ({ vessel, shift, mode, 
     }
   };
 
-  const handleFinalSave = (isDraft: boolean) => {
+  const handleFinalSave = async (isDraft: boolean) => {
     if (isSubmitting) return; // Prevent double submission
     if (!isDraft && !validateInfo()) {
       return;
@@ -535,10 +535,14 @@ const TallyReportView: React.FC<TallyReportViewProps> = ({ vessel, shift, mode, 
       localStorage.removeItem(storageKey);
     }
 
-    setTimeout(() => {
-      onSave(report, isDraft);
+    try {
+      await onSave(report, isDraft);
+    } catch (error) {
+      console.error("Save failed:", error);
+      alert("Lỗi khi lưu dữ liệu. Vui lòng thử lại!");
+    } finally {
       setIsSubmitting(false);
-    }, 100);
+    }
   };
 
   const handleBack = () => {
