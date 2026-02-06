@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { Vessel, Shift, TallyReport, TallyItem, Container, MechanicalDetail } from '../types';
 import { MOCK_CONTAINERS, MOCK_WORKERS, MOCK_DRIVERS, MOCK_TRANSPORT_VEHICLES, MOCK_CUSTOMS_SEALS, HANDLING_METHODS, MOCK_EXTERNAL_UNITS } from '../constants';
 import { SealData, Vehicle } from '../../paper/types';
+import { ServicePrice, BusinessType } from '../../logistics/types';
 import TallyPrintTemplate from '../components/TallyPrintTemplate';
 import AutocompleteInput from '../components/AutocompleteInput';
 
@@ -23,6 +24,7 @@ interface TallyReportViewProps {
   weightFactor: number;
   exportSeals?: SealData[];
   exportVehicles?: Vehicle[];
+  servicePrices?: ServicePrice[];
 }
 
 // New Interface for Jobs within a Group
@@ -38,7 +40,7 @@ interface ExternalMechGroup {
   jobs: ExternalMechJob[];
 }
 
-const TallyReportView: React.FC<TallyReportViewProps> = ({ vessel, shift, mode, workDate, user, initialReport, onSave, onFinish, onBack, availableContainers: propContainers = [], workers = MOCK_WORKERS, drivers = MOCK_DRIVERS, externalUnits = MOCK_EXTERNAL_UNITS, weightFactor, exportSeals = [], exportVehicles = [] }) => {
+const TallyReportView: React.FC<TallyReportViewProps> = ({ vessel, shift, mode, workDate, user, initialReport, onSave, onFinish, onBack, availableContainers: propContainers = [], workers = MOCK_WORKERS, drivers = MOCK_DRIVERS, externalUnits = MOCK_EXTERNAL_UNITS, weightFactor, exportSeals = [], exportVehicles = [], servicePrices = [] }) => {
   const [subStep, setSubStep] = useState<1 | 2>(1);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
@@ -74,6 +76,9 @@ const TallyReportView: React.FC<TallyReportViewProps> = ({ vessel, shift, mode, 
   const [proofImage, setProofImage] = useState<string | null>(initialReport?.proofImageUrl || null);
   const [isUploadingProof, setIsUploadingProof] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  // State for worker handling method (Công nhân phương án)
+  const [workerHandlingMethod, setWorkerHandlingMethod] = useState<string>('');
 
   // Helper upload function
   const uploadToStorage = async (file: File): Promise<string | null> => {
@@ -123,9 +128,63 @@ const TallyReportView: React.FC<TallyReportViewProps> = ({ vessel, shift, mode, 
     }
   };
 
-  const handlingOptions = useMemo(() =>
-    mode === 'NHAP' ? HANDLING_METHODS.MECHANICAL_IMPORT : HANDLING_METHODS.MECHANICAL_EXPORT,
-    [mode]);
+  // Filtered handling options from service prices
+  const businessType = mode === 'NHAP' ? BusinessType.IMPORT : BusinessType.EXPORT;
+
+  // Worker (LABOR) handling methods
+  const workerHandlingOptions = useMemo(() => {
+    const filtered = servicePrices.filter(p =>
+      p.group === 'METHOD' &&
+      p.subGroup === 'LABOR' &&
+      p.businessType === businessType
+    );
+    // Fallback to constants if no DB data
+    if (filtered.length === 0) {
+      return mode === 'NHAP' ? [HANDLING_METHODS.WORKER_IMPORT_CONT, HANDLING_METHODS.WORKER_IMPORT_FLATBED] : [HANDLING_METHODS.WORKER_EXPORT];
+    }
+    return filtered.map(p => p.name);
+  }, [servicePrices, businessType, mode]);
+
+  // Mechanical handling methods
+  const mechanicalHandlingOptions = useMemo(() => {
+    const filtered = servicePrices.filter(p =>
+      p.group === 'METHOD' &&
+      p.subGroup === 'MECHANICAL' &&
+      p.businessType === businessType
+    );
+    // Fallback to constants if no DB data
+    if (filtered.length === 0) {
+      return mode === 'NHAP' ? HANDLING_METHODS.MECHANICAL_IMPORT : HANDLING_METHODS.MECHANICAL_EXPORT;
+    }
+    return filtered.map(p => p.name);
+  }, [servicePrices, businessType, mode]);
+
+  // Legacy alias for mechanical options (backward compat)
+  const handlingOptions = mechanicalHandlingOptions;
+
+  // Set default values when options are available
+  useEffect(() => {
+    // Set default worker handling method (first option)
+    if (workerHandlingOptions.length > 0 && !workerHandlingMethod) {
+      setWorkerHandlingMethod(workerHandlingOptions[0]);
+    }
+
+    // Set default internal mechanical entries (2 entries with first 2 options)
+    if (mechanicalHandlingOptions.length > 0 && internalMechList.length === 0 && !initialReport) {
+      const defaultMechList: MechanicalDetail[] = [];
+      // Add first mechanical with first option
+      if (mechanicalHandlingOptions[0]) {
+        defaultMechList.push({ name: '', task: mechanicalHandlingOptions[0], isExternal: false });
+      }
+      // Add second mechanical with second option (if exists)
+      if (mechanicalHandlingOptions[1]) {
+        defaultMechList.push({ name: '', task: mechanicalHandlingOptions[1], isExternal: false });
+      }
+      if (defaultMechList.length > 0) {
+        setInternalMechList(defaultMechList);
+      }
+    }
+  }, [workerHandlingOptions, mechanicalHandlingOptions, workerHandlingMethod, internalMechList.length, initialReport]);
 
   // Helper to filter out already selected options to prevent duplicates
   const getAvailableOptions = useCallback((allOptions: string[], selectedValues: string[], currentValue: string) => {
@@ -147,6 +206,11 @@ const TallyReportView: React.FC<TallyReportViewProps> = ({ vessel, shift, mode, 
       shift: shift,
       createdBy: user
     }));
+
+    // Restore worker handling method if saved
+    if (reportData.workerHandlingMethod) {
+      setWorkerHandlingMethod(reportData.workerHandlingMethod);
+    }
 
     if (reportData.mechanicalDetails) {
       // Restore internal
@@ -527,6 +591,7 @@ const TallyReportView: React.FC<TallyReportViewProps> = ({ vessel, shift, mode, 
       createdAt: currentReport.createdAt || Date.now(),
       createdBy: user,
       mode: mode,
+      workerHandlingMethod: workerHandlingMethod, // Save worker handling method
       proofImageUrl: proofImage || undefined, // Attach Proof Image
     } as TallyReport;
 
@@ -824,6 +889,17 @@ const TallyReportView: React.FC<TallyReportViewProps> = ({ vessel, shift, mode, 
                     {(currentReport.workerCount || 0) === 0 && <p className="text-xs text-gray-300 italic">Nhập số lượng để hiện ô nhập tên</p>}
                   </div>
                 </div>
+              </div>
+              {/* Worker Handling Method Dropdown */}
+              <div className="mt-4">
+                <label className="text-[9px] font-black text-blue-500 uppercase">Phương án bốc dỡ (Công nhân)</label>
+                <select
+                  className="w-full p-3 bg-blue-50 border border-blue-200 rounded-xl font-bold text-sm outline-none mt-1"
+                  value={workerHandlingMethod}
+                  onChange={(e) => setWorkerHandlingMethod(e.target.value)}
+                >
+                  {workerHandlingOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
               </div>
             </div>
 

@@ -55,6 +55,7 @@ export interface TallyReport {
   owner: string;
   workerCount: number;
   workerNames: string;
+  workerHandlingMethod?: string; // Phương án bốc dỡ công nhân
 
   // Cơ giới nội bộ
   mechanicalCount: number;

@@ -406,13 +406,19 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
           }
 
           let workerHandlingMethod = "";
-          if (r.mode === 'XUAT') {
-            workerHandlingMethod = HANDLING_METHODS.WORKER_EXPORT;
+          // Use saved value from report if available (new behavior)
+          if (r.workerHandlingMethod) {
+            workerHandlingMethod = r.workerHandlingMethod;
           } else {
-            if (r.vehicleCategory === 'XE_THOT') {
-              workerHandlingMethod = HANDLING_METHODS.WORKER_IMPORT_FLATBED;
+            // Fallback to hardcoded logic for backward compatibility
+            if (r.mode === 'XUAT') {
+              workerHandlingMethod = HANDLING_METHODS.WORKER_EXPORT;
             } else {
-              workerHandlingMethod = HANDLING_METHODS.WORKER_IMPORT_CONT;
+              if (r.vehicleCategory === 'XE_THOT') {
+                workerHandlingMethod = HANDLING_METHODS.WORKER_IMPORT_FLATBED;
+              } else {
+                workerHandlingMethod = HANDLING_METHODS.WORKER_IMPORT_CONT;
+              }
             }
           }
 
@@ -593,6 +599,7 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
             weightFactor={configuredWeightFactor}
             exportSeals={exportSeals}
             exportVehicles={exportVehicles}
+            servicePrices={prices}
           />
         );
       case 'DANH_SACH_TALLY':
