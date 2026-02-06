@@ -518,7 +518,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ reports, workOrders, mode, on
 
                   <div className="mb-4">
                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Tổ / Người thực hiện</p>
-                    <p className="text-sm font-bold text-gray-800 line-clamp-2">{wo.organization}</p>
+                    <p className="text-sm font-bold text-gray-800 line-clamp-2">{wo.organization || wo.teamName || '---'}</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
