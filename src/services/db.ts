@@ -259,85 +259,95 @@ export const db = {
 
     // --- TALLY REPORTS ---
     getTallyReports: async (): Promise<TallyReport[]> => {
-        const { data, error } = await supabase
+        // Step 1: Fetch reports WITHOUT nested items (faster query)
+        const { data: reports, error: reportsError } = await supabase
             .from('tally_reports')
             .select(`
-        id,
-        vesselId:vessel_id,
-        vessels(name),
-        mode,
-        shift,
-        workDate:work_date,
-        owner,
-        workerCount:worker_count,
-        workerNames:worker_names,
-        mechanicalCount:mechanical_count,
-        mechanicalNames:mechanical_names,
-        externalMechanicalCount:external_mechanical_count,
-        mechanicalDetails:mechanical_details,
-        equipment,
-        vehicleNo:vehicle_no,
-        vehicleType:vehicle_type,
-        vehicleCategory:vehicle_category,
-        status,
-        createdBy:created_by,
-        createdAt:created_at,
-        proofImageUrl:proof_image_url,
-        tally_items (
-          cont_id,
-          cont_no,
-          size,
-          commodity_type,
-          seal_no,
-          actual_units,
-          actual_weight,
-          is_scratched_floor, 
-          torn_units, 
-          notes,
-          photos, 
-          transport_vehicle, 
-          seal_count
-        )
-      `)
+                id,
+                vesselId:vessel_id,
+                mode,
+                shift,
+                workDate:work_date,
+                owner,
+                workerCount:worker_count,
+                workerNames:worker_names,
+                mechanicalCount:mechanical_count,
+                mechanicalNames:mechanical_names,
+                externalMechanicalCount:external_mechanical_count,
+                mechanicalDetails:mechanical_details,
+                equipment,
+                vehicleNo:vehicle_no,
+                vehicleType:vehicle_type,
+                vehicleCategory:vehicle_category,
+                status,
+                createdBy:created_by,
+                createdAt:created_at,
+                proofImageUrl:proof_image_url
+            `)
             .order('created_at', { ascending: false })
-            .limit(100); // Limit to last 100 reports for performance
+            .limit(100);
 
-        if (error) {
-            console.error("Error fetching tally reports:", JSON.stringify(error, null, 2));
+        if (reportsError) {
+            console.error("Error fetching tally reports:", JSON.stringify(reportsError, null, 2));
             return [];
         }
 
-        try {
-            return data.map((r: any) => {
-                // Reconstruct the report with joined data if available
-                const vesselName = r.vessels?.name || "";
-                const creatorName = r.createdBy || "Kiểm viên";
+        if (!reports || reports.length === 0) return [];
 
-                return {
-                    ...r,
-                    vesselName,
-                    creatorName,
-                    items: (r.tally_items || []).map((i: any) => ({
-                        contId: i.cont_id,
-                        contNo: i.cont_no,
-                        size: i.size,
-                        commodityType: i.commodity_type,
-                        sealNo: i.seal_no,
-                        actualUnits: i.actual_units,
-                        actualWeight: i.actual_weight,
-                        isScratchedFloor: i.is_scratched_floor,
-                        tornUnits: i.torn_units,
-                        notes: i.notes || '',
-                        transportVehicle: i.transport_vehicle || '',
-                        sealCount: i.seal_count || 0,
-                        photos: i.photos || []
-                    }))
-                };
-            }) as TallyReport[];
-        } catch (mapError) {
-            console.error("Error mapping tally reports:", mapError);
-            return [];
+        // Step 2: Fetch items for these reports in a single query
+        const reportIds = reports.map(r => r.id);
+        const { data: items, error: itemsError } = await supabase
+            .from('tally_items')
+            .select(`
+                report_id,
+                cont_id,
+                cont_no,
+                size,
+                commodity_type,
+                seal_no,
+                actual_units,
+                actual_weight,
+                is_scratched_floor,
+                torn_units,
+                notes,
+                photos,
+                transport_vehicle,
+                seal_count
+            `)
+            .in('report_id', reportIds);
+
+        if (itemsError) {
+            console.error("Error fetching tally items:", JSON.stringify(itemsError, null, 2));
         }
+
+        // Step 3: Group items by report_id
+        const itemsByReportId: Record<string, any[]> = {};
+        (items || []).forEach((i: any) => {
+            if (!itemsByReportId[i.report_id]) itemsByReportId[i.report_id] = [];
+            itemsByReportId[i.report_id].push({
+                contId: i.cont_id,
+                contNo: i.cont_no,
+                size: i.size,
+                commodityType: i.commodity_type,
+                sealNo: i.seal_no,
+                actualUnits: i.actual_units,
+                actualWeight: i.actual_weight,
+                isScratchedFloor: i.is_scratched_floor,
+                tornUnits: i.torn_units,
+                notes: i.notes || '',
+                transportVehicle: i.transport_vehicle || '',
+                sealCount: i.seal_count || 0,
+                photos: i.photos || []
+            });
+        });
+
+        // Step 4: Combine reports with their items
+        return reports.map((r: any) => ({
+            ...r,
+            vesselName: '', // Will be populated by UI if needed
+            creatorName: r.createdBy || 'Kiểm viên',
+            items: itemsByReportId[r.id] || []
+        })) as TallyReport[];
     },
 
     // Helper: Check if string is valid UUID
