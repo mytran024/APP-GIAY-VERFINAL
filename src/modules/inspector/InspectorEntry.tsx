@@ -429,12 +429,12 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
             type: 'LABOR' as any,
             businessType: r.mode === 'NHAP' ? 'IMPORT' : 'EXPORT',
             teamName: r.workerNames || 'Tổ Công Nhân',
-            organization: 'Đội xếp dỡ DNL', // Standardized team name for labor
+            organization: r.workerNames || 'Tổ Công Nhân', // Use worker names directly
             workerNames: r.workerNames ? r.workerNames.split(', ') : [],
             peopleCount: r.workerCount || 0,
             personCount: r.workerCount || 0,
-            vehicleType: 'Xếp dỡ thủ công',
-            vehicleNo: '',
+            vehicleType: '', // Blank for labor as requested
+            vehicleNo: '',   // Blank for labor as requested
             containerIds: r.items.map(i => i.contId).filter(Boolean),
             containerNos: r.items.map(i => i.contNo).filter(Boolean),
             shift: r.shift,
@@ -445,7 +445,7 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
             quantity: totalUnits,
             weight: totalWeight,
             dayLaborerCount: 0,
-            note: r.workerNames ? `Công nhân: ${r.workerNames}` : '',
+            note: '', // Note cleared as user wants names in Team/Organization
             status: 'COMPLETED' as any
           };
           newWOs.push(woCN);

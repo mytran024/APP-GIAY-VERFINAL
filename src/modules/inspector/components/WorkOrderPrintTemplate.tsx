@@ -63,9 +63,13 @@ const WorkOrderPrintTemplate: React.FC<WorkOrderPrintTemplateProps> = ({ wo, rep
         <div className="flex items-baseline justify-between">
           <div className="flex flex-1 items-baseline">
             <span className="whitespace-nowrap italic">Loại xe:</span>
-            <span className="flex-1 border-b border-black font-bold px-2 mx-1 min-h-[1.2rem]">{wo.vehicleType || report.vehicleType || 'Xe nâng'}</span>
+            <span className="flex-1 border-b border-black font-bold px-2 mx-1 min-h-[1.2rem]">
+              {wo.type === 'LABOR' ? '' : (wo.vehicleType || report.vehicleType || 'Xe nâng')}
+            </span>
             <span className="whitespace-nowrap italic ml-4">Số xe:</span>
-            <span className="flex-1 border-b border-black font-bold px-2 mx-1 min-h-[1.2rem]">{wo.vehicleNo || report.vehicleNo || 'Thiết bị'}</span>
+            <span className="flex-1 border-b border-black font-bold px-2 mx-1 min-h-[1.2rem]">
+              {wo.type === 'LABOR' ? '' : (wo.vehicleNo || report.vehicleNo || 'Thiết bị')}
+            </span>
           </div>
           <div className="flex items-baseline ml-6">
             <span className="whitespace-nowrap italic">Ca:</span>
