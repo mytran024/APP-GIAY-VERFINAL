@@ -47,9 +47,10 @@ export const db = {
     },
 
     upsertVessel: async (vessel: Vessel): Promise<{ data: Vessel | null, error: any }> => {
-        // Map CamelCase -> SnakeCase
-        const payload = {
-            id: vessel.id,
+        // Only include id if it's a valid UUID (for updates)
+        const isUpdate = db._isValidUUID(vessel.id);
+
+        const payload: any = {
             name: vessel.vesselName,
             commodity: vessel.commodity,
             consignee: vessel.consignee,
@@ -64,8 +65,10 @@ export const db = {
             export_arrival_time: vessel.exportArrivalTime || null,
             export_operation_time: vessel.exportOperationTime || null,
             export_planned_weight: vessel.exportPlannedWeight,
-            customer_name: (vessel as any).customerName, // Cast for intersection types
+            customer_name: (vessel as any).customerName,
         };
+
+        if (isUpdate) payload.id = vessel.id;
 
         const { data, error } = await supabase
             .from('vessels')
@@ -138,8 +141,9 @@ export const db = {
     },
 
     upsertContainer: async (c: Container): Promise<{ data: Container | null, error: any }> => {
-        const payload = {
-            id: c.id,
+        const isUpdate = db._isValidUUID(c.id);
+
+        const payload: any = {
             vessel_id: c.vesselId,
             unit_type: c.unitType || 'CONTAINER',
             container_no: c.containerNo,
@@ -170,6 +174,8 @@ export const db = {
             inspector: c.inspector,
         };
 
+        if (isUpdate) payload.id = c.id;
+
         const { data, error } = await supabase.from('containers').upsert(payload).select().single();
         if (error) {
             console.error("Error saving container:", error);
@@ -181,50 +187,58 @@ export const db = {
     upsertContainers: async (containers: Container[]): Promise<{ count: number, error: any }> => {
         if (!containers.length) return { count: 0, error: null };
 
-        const CHUNK_SIZE = 50;
+        const CHUNK_SIZE = 25; // Reduced to prevent timeouts
         let totalCount = 0;
 
         for (let i = 0; i < containers.length; i += CHUNK_SIZE) {
             const chunk = containers.slice(i, i + CHUNK_SIZE);
-            const payloads = chunk.map(c => ({
-                id: c.id,
-                vessel_id: c.vesselId,
-                unit_type: c.unitType || 'CONTAINER',
-                container_no: c.containerNo,
-                size: c.size,
-                seal_no: c.sealNo,
-                carrier: c.carrier,
-                pkgs: c.pkgs,
-                weight: c.weight,
-                customs_pkgs: c.customsPkgs,
-                customs_weight: c.customsWeight,
-                bill_no: c.billNo,
-                vendor: c.vendor,
-                det_expiry: c.detExpiry || null,
-                transport_decl_no: c.tkNhaVC,
-                transport_decl_date: c.ngayTkNhaVC || null,
-                dnl_decl_no: c.tkDnlOla,
-                dnl_decl_date: c.ngayTkDnl || null,
-                planning_date: c.ngayKeHoach || null,
-                actual_import_date: c.ngayNhapKho || null,
-                empty_return_location: c.noiHaRong,
-                status: c.status,
-                tally_approved: c.tallyApproved,
-                work_order_approved: c.workOrderApproved,
-                remarks: c.remarks,
-                worker_names: c.workerNames || [],
-                images: c.images || [],
-                shift: c.shift,
-                inspector: c.inspector,
-            }));
+            const payloads = chunk.map(c => {
+                const isUpdate = db._isValidUUID(c.id);
+                const payload: any = {
+                    vessel_id: c.vesselId,
+                    unit_type: c.unitType || 'CONTAINER',
+                    container_no: c.containerNo,
+                    size: c.size,
+                    seal_no: c.sealNo,
+                    carrier: c.carrier,
+                    pkgs: c.pkgs,
+                    weight: c.weight,
+                    customs_pkgs: c.customsPkgs,
+                    customs_weight: c.customsWeight,
+                    bill_no: c.billNo,
+                    vendor: c.vendor,
+                    det_expiry: c.detExpiry || null,
+                    transport_decl_no: c.tkNhaVC,
+                    transport_decl_date: c.ngayTkNhaVC || null,
+                    dnl_decl_no: c.tkDnlOla,
+                    dnl_decl_date: c.ngayTkDnl || null,
+                    planning_date: c.ngayKeHoach || null,
+                    actual_import_date: c.ngayNhapKho || null,
+                    empty_return_location: c.noiHaRong,
+                    status: c.status,
+                    tally_approved: c.tallyApproved,
+                    work_order_approved: c.workOrderApproved,
+                    remarks: c.remarks,
+                    worker_names: c.workerNames || [],
+                    images: c.images || [],
+                    shift: c.shift,
+                    inspector: c.inspector,
+                };
+                if (isUpdate) payload.id = c.id;
+                return payload;
+            });
 
-            // Using upsert without .select() to reduce DB load and prevent timeouts
             const { error } = await supabase.from('containers').upsert(payloads);
             if (error) {
                 console.error("Error saving batch containers chunk:", error);
                 return { count: totalCount, error };
             }
             totalCount += chunk.length;
+
+            // Add delay between chunks to prevent rate limiting
+            if (i + CHUNK_SIZE < containers.length) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
         }
 
         return { count: totalCount, error: null };
@@ -313,37 +327,17 @@ export const db = {
         }) as TallyReport[];
     },
 
-    // Helper to ensure valid UUID for Supabase
-    _toUUID: (id: string): string => {
-        if (!id) return '00000000-0000-4000-8000-000000000000';
-
-        // 1. Try to find a UUID pattern anywhere in the string (e.g. NHAP-UUID-SEQ)
-        const embeddedUuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-        const match = id.match(embeddedUuidRegex);
-        if (match) return match[0];
-
-        // 2. Deterministic hashing fallback (Ensures exactly 36 chars: 8-4-4-4-12)
-        let hash = 0;
-        for (let i = 0; i < id.length; i++) {
-            const char = id.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash |= 0;
-        }
-        const hex = Math.abs(hash).toString(16).padStart(8, '0');
-        return `${hex}-0000-4000-8000-${hex}0000`.toLowerCase();
+    // Helper: Check if string is valid UUID
+    _isValidUUID: (id: string): boolean => {
+        if (!id) return false;
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        return uuidRegex.test(id);
     },
 
-    upsertTallyReport: async (report: TallyReport): Promise<{ success: boolean, error?: any }> => {
-        if (!report.id) {
-            const err = "Error saving Tally Report: No ID provided";
-            console.error(err);
-            return { success: false, error: err };
-        }
+    upsertTallyReport: async (report: TallyReport): Promise<{ success: boolean, id?: string, error?: any }> => {
+        const isUpdate = db._isValidUUID(report.id);
 
-        const validId = db._toUUID(report.id);
-
-        const reportPayload = {
-            id: validId,
+        const reportPayload: any = {
             vessel_id: report.vesselId,
             mode: report.mode,
             shift: report.shift,
@@ -364,17 +358,27 @@ export const db = {
             proof_image_url: report.proofImageUrl
         };
 
-        const { error: rError } = await supabase.from('tally_reports').upsert(reportPayload);
+        if (isUpdate) reportPayload.id = report.id;
+
+        const { data: savedReport, error: rError } = await supabase
+            .from('tally_reports')
+            .upsert(reportPayload)
+            .select('id')
+            .single();
+
         if (rError) {
             console.error("Error saving Tally Report:", rError);
             return { success: false, error: rError };
         }
 
-        await supabase.from('tally_items').delete().eq('report_id', validId);
+        const reportId = savedReport.id;
+
+        // Delete existing items for this report
+        await supabase.from('tally_items').delete().eq('report_id', reportId);
 
         if (report.items && report.items.length > 0) {
             const itemsPayload = report.items.map(i => ({
-                report_id: validId,
+                report_id: reportId,
                 cont_id: i.contId,
                 cont_no: i.contNo,
                 size: i.size,
@@ -396,7 +400,7 @@ export const db = {
             }
         }
 
-        return { success: true };
+        return { success: true, id: reportId };
     },
 
     // --- WORK ORDERS ---
@@ -442,9 +446,10 @@ export const db = {
     },
 
     upsertWorkOrder: async (wo: WorkOrder): Promise<{ data: WorkOrder | null, error: any }> => {
-        const payload = {
-            id: db._toUUID(wo.id),
-            report_id: db._toUUID(wo.reportId || ''),
+        const isUpdate = db._isValidUUID(wo.id);
+        const hasValidReportId = db._isValidUUID(wo.reportId || '');
+
+        const payload: any = {
             vessel_id: wo.vesselId,
             type: wo.type,
             business_type: wo.businessType,
@@ -470,6 +475,9 @@ export const db = {
             is_weekend: wo.isWeekend,
             is_outsourced: wo.isOutsourced
         };
+
+        if (isUpdate) payload.id = wo.id;
+        if (hasValidReportId) payload.report_id = wo.reportId;
 
         const { data, error } = await supabase.from('work_orders').upsert(payload).select().single();
         if (error) {

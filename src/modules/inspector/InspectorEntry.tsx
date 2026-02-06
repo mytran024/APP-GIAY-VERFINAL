@@ -271,19 +271,26 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
         createSubReports(groupedItems.container, 'CONTAINER');
         createSubReports(groupedItems.flatbed, 'XE_THOT');
 
-        // Update Local State
-        setAllReports(prev => [...finalReports, ...prev]);
+        // DB SAVE (Async & Strict) - Save reports and get back generated UUIDs
+        const savedReportIds = new Map<string, string>(); // originalId -> dbId
 
-        // DB SAVE (Async & Strict)
         for (const r of finalReports) {
-          const { success, error } = await db.upsertTallyReport(r);
+          const { success, id: dbId, error } = await db.upsertTallyReport(r);
           if (!success) {
             console.error(`Failed to save report ${r.id}`, error);
             const errorMsg = typeof error === 'object' && error !== null ? (error.message || JSON.stringify(error)) : error;
             alert(`Lỗi lưu phiếu Tally ${r.id}: ${errorMsg}`);
             hasError = true;
+          } else if (dbId) {
+            // Store mapping: original local ID -> database UUID
+            savedReportIds.set(r.id, dbId);
+            // Update the report object with the real DB ID
+            r.id = dbId;
           }
         }
+
+        // Update Local State with proper DB IDs
+        setAllReports(prev => [...finalReports, ...prev]);
       }
 
       if (isDraft) {

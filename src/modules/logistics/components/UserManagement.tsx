@@ -303,6 +303,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onUpdateUsers, r
                   >
                     <option value={UserRole.CS}>NHÂN VIÊN CS</option>
                     <option value={UserRole.INSPECTOR}>KIỂM VIÊN</option>
+                    <option value={UserRole.CUSTOMS}>HẢI QUAN</option>
                     <option value={UserRole.DEPOT}>NHÂN VIÊN DEPOT</option>
                     <option value={UserRole.TRANSPORT}>VẬN TẢI</option>
                   </select>
