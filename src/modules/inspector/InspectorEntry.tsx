@@ -593,7 +593,10 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
             onSave={handleSaveReport}
             onFinish={() => setStep('CHON_LOAI_TALLY')}
             onBack={() => setStep('CHON_LOAI_TALLY')}
-            availableContainers={inspectorContainers.filter(c => logisticsContainers.find(lc => lc.id === c.id)?.vesselId === selectedVessel?.id)}
+            availableContainers={inspectorContainers.filter(c => {
+              const original = logisticsContainers.find(lc => lc.id === c.id);
+              return original?.vesselId === selectedVessel?.id && original?.status !== 'COMPLETED';
+            })}
             workers={workerOptions}
             drivers={driverOptions}
             externalUnits={externalUnitOptions}
