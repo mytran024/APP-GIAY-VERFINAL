@@ -128,7 +128,9 @@ export const db = {
       shift,
       inspector,
       updatedAt:updated_at
-    `);
+    `)
+            .order('updated_at', { ascending: false })
+            .limit(1000); // Limit to last 1000 containers for stability
 
         if (vesselId) {
             query = query.eq('vessel_id', vesselId);
@@ -297,7 +299,8 @@ export const db = {
           seal_count
         )
       `)
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false })
+            .limit(100); // Limit to last 100 reports for performance
 
         if (error) {
             console.error("Error fetching tally reports:", error);
@@ -548,7 +551,9 @@ export const db = {
                 isHoliday:is_holiday,
                 isWeekend:is_weekend,
                 isOutsourced:is_outsourced
-            `);
+            `)
+            .order('created_at', { ascending: false })
+            .limit(150); // Limit to last 150 work orders for performance
 
         if (error) return [];
 
