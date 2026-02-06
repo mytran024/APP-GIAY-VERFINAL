@@ -514,8 +514,8 @@ export const db = {
     },
 
     upsertTransportVehicle: async (vehicle: Vehicle): Promise<{ data: Vehicle | null, error: any }> => {
-        const payload = {
-            id: vehicle.id,
+        const isUpdate = db._isValidUUID(vehicle.id);
+        const payload: any = {
             vessel_id: vehicle.vesselId,
             plate_number: vehicle.plateNumber,
             trailer_number: vehicle.trailerNumber,
@@ -523,6 +523,8 @@ export const db = {
             trips_completed: vehicle.tripsCompleted || 0,
             status: vehicle.status || 'ACTIVE',
         };
+
+        if (isUpdate) payload.id = vehicle.id;
 
         const { data, error } = await supabase.from('transport_vehicles').upsert(payload).select().single();
         if (error) {
@@ -558,17 +560,21 @@ export const db = {
     upsertSeals: async (seals: SealData[]): Promise<{ count: number, error: any }> => {
         if (!seals.length) return { count: 0, error: null };
 
-        const CHUNK_SIZE = 50;
+        const CHUNK_SIZE = 25;
         let totalCount = 0;
 
         for (let i = 0; i < seals.length; i += CHUNK_SIZE) {
             const chunk = seals.slice(i, i + CHUNK_SIZE);
-            const payloads = chunk.map(s => ({
-                id: s.id,
-                vessel_id: s.vesselId,
-                serial_number: s.serialNumber,
-                status: s.status,
-            }));
+            const payloads = chunk.map(s => {
+                const isUpdate = db._isValidUUID(s.id);
+                const payload: any = {
+                    vessel_id: s.vesselId,
+                    serial_number: s.serialNumber,
+                    status: s.status,
+                };
+                if (isUpdate) payload.id = s.id;
+                return payload;
+            });
 
             const { error } = await supabase.from('export_seals').upsert(payloads);
             if (error) {
@@ -576,6 +582,11 @@ export const db = {
                 return { count: totalCount, error };
             }
             totalCount += chunk.length;
+
+            // Add delay between chunks to prevent rate limiting
+            if (i + CHUNK_SIZE < seals.length) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
         }
 
         return { count: totalCount, error: null };
@@ -610,8 +621,8 @@ export const db = {
     },
 
     upsertServicePrice: async (p: ServicePrice): Promise<{ data: ServicePrice | null, error: any }> => {
-        const payload = {
-            id: p.id,
+        const isUpdate = db._isValidUUID(p.id);
+        const payload: any = {
             name: p.name,
             unit: p.unit,
             price: p.price,
@@ -620,6 +631,8 @@ export const db = {
             business_type: p.businessType,
             sub_group: p.subGroup,
         };
+
+        if (isUpdate) payload.id = p.id;
 
         const { data, error } = await supabase.from('service_prices').upsert(payload).select().single();
         if (error) {
@@ -656,14 +669,16 @@ export const db = {
     },
 
     upsertConsignee: async (c: Consignee): Promise<{ data: Consignee | null, error: any }> => {
-        const payload = {
-            id: c.id,
+        const isUpdate = db._isValidUUID(c.id);
+        const payload: any = {
             name: c.name,
             tax_code: c.taxCode,
             address: c.address,
             phone: c.phone,
             email: c.email,
         };
+
+        if (isUpdate) payload.id = c.id;
 
         const { data, error } = await supabase.from('consignees').upsert(payload).select().single();
         if (error) {
@@ -703,8 +718,8 @@ export const db = {
     },
 
     upsertSystemUser: async (u: SystemUser): Promise<{ data: SystemUser | null, error: any }> => {
-        const payload = {
-            id: u.id,
+        const isUpdate = db._isValidUUID(u.id);
+        const payload: any = {
             username: u.username,
             password: u.password,
             fullname: u.name,
@@ -715,6 +730,8 @@ export const db = {
             is_active: u.isActive ?? true,
             employee_id: u.employeeId
         };
+
+        if (isUpdate) payload.id = u.id;
 
         const { data, error } = await supabase.from('system_users').upsert(payload).select().single();
         if (error) {
@@ -751,8 +768,8 @@ export const db = {
     },
 
     upsertResourceMember: async (r: ResourceMember): Promise<{ data: ResourceMember | null, error: any }> => {
-        const payload = {
-            id: r.id,
+        const isUpdate = db._isValidUUID(r.id);
+        const payload: any = {
             name: r.name,
             phone: r.phone,
             department: r.department,
@@ -760,6 +777,8 @@ export const db = {
             is_outsourced: r.isOutsourced,
             unit_name: r.unitName,
         };
+
+        if (isUpdate) payload.id = r.id;
 
         const { data, error } = await supabase.from('resource_members').upsert(payload).select().single();
         if (error) {
