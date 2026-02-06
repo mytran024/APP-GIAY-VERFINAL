@@ -316,26 +316,21 @@ export const db = {
     // Helper to ensure valid UUID for Supabase
     _toUUID: (id: string): string => {
         if (!id) return '00000000-0000-4000-8000-000000000000';
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (uuidRegex.test(id)) return id;
 
-        const parts = id.split('-');
-        for (const part of parts) {
-            if (uuidRegex.test(part)) return part;
-        }
+        // 1. Try to find a UUID pattern anywhere in the string (e.g. NHAP-UUID-SEQ)
+        const embeddedUuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+        const match = id.match(embeddedUuidRegex);
+        if (match) return match[0];
 
-        // Deterministic UUID from string (Same input -> Same UUID)
-        // This is critical for maintaining foreign key links when using string IDs
+        // 2. Deterministic hashing fallback (Ensures exactly 36 chars: 8-4-4-4-12)
         let hash = 0;
         for (let i = 0; i < id.length; i++) {
             const char = id.charCodeAt(i);
             hash = ((hash << 5) - hash) + char;
-            hash = hash & hash;
+            hash |= 0;
         }
         const hex = Math.abs(hash).toString(16).padStart(8, '0');
-        // Create a persistent pattern: hex-0000-4000-8000-hex+reversed_hex
-        const revHex = hex.split('').reverse().join('');
-        return `${hex}-0000-4000-8000-${hex}${revHex.padStart(4, '0')}`;
+        return `${hex}-0000-4000-8000-${hex}0000`.toLowerCase();
     },
 
     upsertTallyReport: async (report: TallyReport): Promise<{ success: boolean, error?: any }> => {
