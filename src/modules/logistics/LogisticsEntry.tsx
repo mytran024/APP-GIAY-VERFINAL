@@ -292,33 +292,79 @@ const LogisticsEntry: React.FC<LogisticsProps> = ({ user, onLogout }) => {
 
   // --- DB SYNC HANDLERS ---
   const handleUpdatePrices = async (newPrices: ServicePrice[]) => {
-    // 1. Detect deletes
-    const deleted = servicePrices.filter(p => !newPrices.find(np => np.id === p.id));
-    for (const d of deleted) await db.deleteServicePrice(d.id);
-    // 2. Upsert
-    for (const p of newPrices) await db.upsertServicePrice(p);
+    const prev = [...servicePrices];
     setServicePrices(newPrices);
+    try {
+      const deleted = prev.filter(p => !newPrices.find(np => np.id === p.id));
+      const changed = newPrices.filter(np => {
+        const op = prev.find(p => p.id === np.id);
+        return !op || JSON.stringify(op) !== JSON.stringify(np);
+      });
+      await Promise.all([
+        ...deleted.map(d => db.deleteServicePrice(d.id)),
+        ...changed.map(p => db.upsertServicePrice(p))
+      ]);
+    } catch (err) {
+      setServicePrices(prev);
+      alert("Lỗi đồng bộ Đơn giá!");
+    }
   };
 
   const handleUpdateConsignees = async (newConsignees: Consignee[]) => {
-    const deleted = consignees.filter(c => !newConsignees.find(nc => nc.id === c.id));
-    for (const d of deleted) await db.deleteConsignee(d.id);
-    for (const c of newConsignees) await db.upsertConsignee(c);
+    const prev = [...consignees];
     setConsignees(newConsignees);
+    try {
+      const deleted = prev.filter(c => !newConsignees.find(nc => nc.id === c.id));
+      const changed = newConsignees.filter(nc => {
+        const oc = prev.find(c => c.id === nc.id);
+        return !oc || JSON.stringify(oc) !== JSON.stringify(nc);
+      });
+      await Promise.all([
+        ...deleted.map(d => db.deleteConsignee(d.id)),
+        ...changed.map(c => db.upsertConsignee(c))
+      ]);
+    } catch (err) {
+      setConsignees(prev);
+      alert("Lỗi đồng bộ Chủ hàng!");
+    }
   };
 
   const handleUpdateUsers = async (newUsers: SystemUser[]) => {
-    const deleted = users.filter(u => !newUsers.find(nu => nu.id === u.id));
-    for (const d of deleted) await db.deleteSystemUser(d.id);
-    for (const u of newUsers) await db.upsertSystemUser(u);
+    const prev = [...users];
     setUsers(newUsers);
+    try {
+      const deleted = prev.filter(u => !newUsers.find(nu => nu.id === u.id));
+      const changed = newUsers.filter(nu => {
+        const ou = prev.find(u => u.id === nu.id);
+        return !ou || JSON.stringify(ou) !== JSON.stringify(nu);
+      });
+      await Promise.all([
+        ...deleted.map(d => db.deleteSystemUser(d.id)),
+        ...changed.map(u => db.upsertSystemUser(u))
+      ]);
+    } catch (err) {
+      setUsers(prev);
+      alert("Lỗi đồng bộ Người dùng!");
+    }
   };
 
   const handleUpdateResources = async (newResources: ResourceMember[]) => {
-    const deleted = resourceMembers.filter(r => !newResources.find(nr => nr.id === r.id));
-    for (const d of deleted) await db.deleteResourceMember(d.id);
-    for (const r of newResources) await db.upsertResourceMember(r);
+    const prev = [...resourceMembers];
     setResourceMembers(newResources);
+    try {
+      const deleted = prev.filter(r => !newResources.find(nr => nr.id === r.id));
+      const changed = newResources.filter(nr => {
+        const or = prev.find(r => r.id === nr.id);
+        return !or || JSON.stringify(or) !== JSON.stringify(nr);
+      });
+      await Promise.all([
+        ...deleted.map(d => db.deleteResourceMember(d.id)),
+        ...changed.map(r => db.upsertResourceMember(r))
+      ]);
+    } catch (err) {
+      setResourceMembers(prev);
+      alert("Lỗi đồng bộ Nhân sự!");
+    }
   };
 
   const renderContent = () => {
