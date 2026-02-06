@@ -65,7 +65,6 @@ export const db = {
             export_operation_time: vessel.exportOperationTime || null,
             export_planned_weight: vessel.exportPlannedWeight,
             customer_name: (vessel as any).customerName, // Cast for intersection types
-            updated_at: new Date().toISOString()
         };
 
         const { data, error } = await supabase
@@ -169,7 +168,6 @@ export const db = {
             images: c.images || [],
             shift: c.shift,
             inspector: c.inspector,
-            updated_at: new Date().toISOString()
         };
 
         const { data, error } = await supabase.from('containers').upsert(payload).select().single();
@@ -212,7 +210,6 @@ export const db = {
             images: c.images || [],
             shift: c.shift,
             inspector: c.inspector,
-            updated_at: new Date().toISOString()
         }));
 
         const { data, error } = await supabase.from('containers').upsert(payloads).select();
@@ -306,6 +303,18 @@ export const db = {
         }) as TallyReport[];
     },
 
+    // Helper to ensure valid UUID for Supabase
+    _toUUID: (id: string): string => {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(id)) return id;
+
+        const parts = id.split('-');
+        for (const part of parts) {
+            if (uuidRegex.test(part)) return part;
+        }
+        return crypto.randomUUID();
+    },
+
     upsertTallyReport: async (report: TallyReport): Promise<{ success: boolean, error?: any }> => {
         if (!report.id) {
             const err = "Error saving Tally Report: No ID provided";
@@ -313,9 +322,10 @@ export const db = {
             return { success: false, error: err };
         }
 
-        // 1. Upsert Report
+        const validId = db._toUUID(report.id);
+
         const reportPayload = {
-            id: report.id,
+            id: validId,
             vessel_id: report.vesselId,
             mode: report.mode,
             shift: report.shift,
@@ -326,7 +336,7 @@ export const db = {
             mechanical_count: report.mechanicalCount,
             mechanical_names: report.mechanicalNames,
             external_mechanical_count: report.externalMechanicalCount || 0,
-            mechanical_details: report.mechanicalDetails || null, // Ensure null if undefined
+            mechanical_details: report.mechanicalDetails || null,
             equipment: report.equipment,
             vehicle_no: report.vehicleNo,
             vehicle_type: report.vehicleType,
@@ -342,17 +352,11 @@ export const db = {
             return { success: false, error: rError };
         }
 
-        // 2. Upsert Items (Delete existing for this report to handle updates cleanly?)
-        // Strategy: Delete all items for this report first, then re-insert. Safer for simple logic.
-        const { error: delError } = await supabase.from('tally_items').delete().eq('report_id', report.id);
-        if (delError) {
-            console.error("Error clearing old items:", delError);
-            return { success: false, error: delError };
-        }
+        await supabase.from('tally_items').delete().eq('report_id', validId);
 
         if (report.items && report.items.length > 0) {
             const itemsPayload = report.items.map(i => ({
-                report_id: report.id,
+                report_id: validId,
                 cont_id: i.contId,
                 cont_no: i.contNo,
                 size: i.size,
@@ -382,34 +386,34 @@ export const db = {
         const { data, error } = await supabase
             .from('work_orders')
             .select(`
-        id,
-        reportId:report_id,
-        vesselId:vessel_id,
-        vessel:vessels(name),
-        type,
-        businessType:business_type,
-        status,
-        teamName:team_name,
-        workerNames:worker_names,
-        peopleCount:people_count,
-        vehicleNos:vehicle_nos,
-        vehicleType:vehicle_type,
-        containerIds:container_ids,
-        containerNos:container_nos,
-        shift,
-        date,
-        items,
-        handlingMethod:handling_method,
-        commodityType:commodity_type,
-        specification:specification,
-        quantity,
-        weight,
-        dayLaborerCount:day_laborer_count,
-        note,
-        isHoliday:is_holiday,
-        isWeekend:is_weekend,
-        isOutsourced:is_outsourced
-      `);
+                id,
+                reportId:report_id,
+                vesselId:vessel_id,
+                vessel:vessels(name),
+                type,
+                businessType:business_type,
+                status,
+                teamName:team_name,
+                workerNames:worker_names,
+                peopleCount:people_count,
+                vehicleNos:vehicle_nos,
+                vehicleType:vehicle_type,
+                containerIds:container_ids,
+                containerNos:container_nos,
+                shift,
+                date,
+                items,
+                handlingMethod:handling_method,
+                commodityType:commodity_type,
+                specification:specification,
+                quantity,
+                weight,
+                dayLaborerCount:day_laborer_count,
+                note,
+                isHoliday:is_holiday,
+                isWeekend:is_weekend,
+                isOutsourced:is_outsourced
+            `);
 
         if (error) return [];
 
@@ -421,13 +425,13 @@ export const db = {
 
     upsertWorkOrder: async (wo: WorkOrder): Promise<{ data: WorkOrder | null, error: any }> => {
         const payload = {
-            id: wo.id,
-            report_id: wo.reportId,
+            id: db._toUUID(wo.id),
+            report_id: db._toUUID(wo.reportId || ''),
             vessel_id: wo.vesselId,
             type: wo.type,
             business_type: wo.businessType,
             status: wo.status,
-            team_name: wo.teamName || (wo as any).organization, // mapped to team_name (handles both Logistics/Inspector sources)
+            team_name: wo.teamName || (wo as any).organization,
             worker_names: wo.workerNames,
             people_count: wo.peopleCount || 0,
             vehicle_nos: wo.vehicleNos,
@@ -437,8 +441,6 @@ export const db = {
             shift: wo.shift,
             date: wo.date || null,
             items: wo.items,
-
-            // New Inspector Fields
             handling_method: wo.handlingMethod,
             commodity_type: wo.commodityType,
             specification: wo.specification,
@@ -446,11 +448,9 @@ export const db = {
             weight: wo.weight,
             day_laborer_count: wo.dayLaborerCount,
             note: wo.note,
-
             is_holiday: wo.isHoliday,
             is_weekend: wo.isWeekend,
-            is_outsourced: wo.isOutsourced,
-            updated_at: new Date().toISOString()
+            is_outsourced: wo.isOutsourced
         };
 
         const { data, error } = await supabase.from('work_orders').upsert(payload).select().single();
@@ -496,7 +496,6 @@ export const db = {
             driver_name: vehicle.driverName,
             trips_completed: vehicle.tripsCompleted || 0,
             status: vehicle.status || 'ACTIVE',
-            updated_at: new Date().toISOString()
         };
 
         const { data, error } = await supabase.from('transport_vehicles').upsert(payload).select().single();
@@ -515,7 +514,7 @@ export const db = {
     // --- SEALS ---
     getSeals: async (): Promise<SealData[]> => {
         const { data, error } = await supabase
-            .from('seals')
+            .from('export_seals')
             .select(`
                 id,
                 vesselId:vessel_id,
@@ -537,10 +536,9 @@ export const db = {
             vessel_id: s.vesselId,
             serial_number: s.serialNumber,
             status: s.status,
-            updated_at: new Date().toISOString()
         }));
 
-        const { data, error } = await supabase.from('seals').upsert(payloads).select();
+        const { data, error } = await supabase.from('export_seals').upsert(payloads).select();
         if (error) {
             console.error("Error saving batch seals:", error);
             return { count: 0, error };
@@ -549,7 +547,7 @@ export const db = {
     },
 
     deleteSeal: async (id: string): Promise<boolean> => {
-        const { error } = await supabase.from('seals').delete().eq('id', id);
+        const { error } = await supabase.from('export_seals').delete().eq('id', id);
         return !error;
     },
 
@@ -586,7 +584,6 @@ export const db = {
             group: p.group,
             business_type: p.businessType,
             sub_group: p.subGroup,
-            updated_at: new Date().toISOString()
         };
 
         const { data, error } = await supabase.from('service_prices').upsert(payload).select().single();
@@ -631,7 +628,6 @@ export const db = {
             address: c.address,
             phone: c.phone,
             email: c.email,
-            updated_at: new Date().toISOString()
         };
 
         const { data, error } = await supabase.from('consignees').upsert(payload).select().single();
@@ -655,15 +651,13 @@ export const db = {
                 id,
                 username,
                 password,
-                name,
+                name:fullname,
                 role,
-                isActive:is_active,
-                employeeId:employee_id,
                 phone,
                 email,
-                department
-            `)
-            .order('created_at', { ascending: true });
+                department,
+                isActive:is_active
+            `);
 
         if (error) {
             console.error("Error fetching users:", error);
@@ -676,15 +670,13 @@ export const db = {
         const payload = {
             id: u.id,
             username: u.username,
-            password: u.password, // Explicitly handle password if present in type or passed in
-            name: u.name,
+            password: u.password,
+            fullname: u.name,
             role: u.role,
-            is_active: u.isActive,
-            employee_id: u.employeeId,
             phone: u.phone,
             email: u.email,
             department: u.department,
-            updated_at: new Date().toISOString()
+            is_active: u.isActive
         };
 
         const { data, error } = await supabase.from('system_users').upsert(payload).select().single();
@@ -712,8 +704,7 @@ export const db = {
                 type,
                 isOutsourced:is_outsourced,
                 unitName:unit_name
-            `)
-            .order('created_at', { ascending: true });
+            `);
 
         if (error) {
             console.error("Error fetching resources:", error);
@@ -731,7 +722,6 @@ export const db = {
             type: r.type,
             is_outsourced: r.isOutsourced,
             unit_name: r.unitName,
-            updated_at: new Date().toISOString()
         };
 
         const { data, error } = await supabase.from('resource_members').upsert(payload).select().single();
@@ -747,7 +737,6 @@ export const db = {
         return !error;
     },
 
-    // --- REALTIME SUBSCRIPTION ---
     subscribeToTable: (tableName: string, callback: (payload: any) => void) => {
         console.log(`[REALTIME] Subscribing to ${tableName}`);
         return supabase
