@@ -303,36 +303,41 @@ export const db = {
             .limit(100); // Limit to last 100 reports for performance
 
         if (error) {
-            console.error("Error fetching tally reports:", error);
+            console.error("Error fetching tally reports:", JSON.stringify(error, null, 2));
             return [];
         }
 
-        return data.map((r: any) => {
-            // Reconstruct the report with joined data if available
-            const vesselName = r.vessels?.name || "";
-            const creatorName = r.createdBy || "Kiểm viên";
+        try {
+            return data.map((r: any) => {
+                // Reconstruct the report with joined data if available
+                const vesselName = r.vessels?.name || "";
+                const creatorName = r.createdBy || "Kiểm viên";
 
-            return {
-                ...r,
-                vesselName,
-                creatorName,
-                items: r.tally_items.map((i: any) => ({
-                    contId: i.cont_id,
-                    contNo: i.cont_no,
-                    size: i.size,
-                    commodityType: i.commodity_type,
-                    sealNo: i.seal_no,
-                    actualUnits: i.actual_units,
-                    actualWeight: i.actual_weight,
-                    isScratchedFloor: i.is_scratched_floor,
-                    tornUnits: i.torn_units,
-                    notes: i.notes || '',
-                    transportVehicle: i.transport_vehicle || '',
-                    sealCount: i.seal_count || 0,
-                    photos: i.photos || []
-                }))
-            };
-        }) as TallyReport[];
+                return {
+                    ...r,
+                    vesselName,
+                    creatorName,
+                    items: (r.tally_items || []).map((i: any) => ({
+                        contId: i.cont_id,
+                        contNo: i.cont_no,
+                        size: i.size,
+                        commodityType: i.commodity_type,
+                        sealNo: i.seal_no,
+                        actualUnits: i.actual_units,
+                        actualWeight: i.actual_weight,
+                        isScratchedFloor: i.is_scratched_floor,
+                        tornUnits: i.torn_units,
+                        notes: i.notes || '',
+                        transportVehicle: i.transport_vehicle || '',
+                        sealCount: i.seal_count || 0,
+                        photos: i.photos || []
+                    }))
+                };
+            }) as TallyReport[];
+        } catch (mapError) {
+            console.error("Error mapping tally reports:", mapError);
+            return [];
+        }
     },
 
     // Helper: Check if string is valid UUID
