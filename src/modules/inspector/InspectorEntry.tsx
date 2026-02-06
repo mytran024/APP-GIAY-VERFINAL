@@ -429,12 +429,12 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
             type: 'LABOR' as any,
             businessType: r.mode === 'NHAP' ? 'IMPORT' : 'EXPORT',
             teamName: r.workerNames || 'Tổ Công Nhân',
-            organization: r.workerNames || 'Tổ Công Nhân', // Use worker names directly
+            organization: r.workerNames || 'Tổ Công Nhân', // Lấy tên công nhân
             workerNames: r.workerNames ? r.workerNames.split(', ') : [],
             peopleCount: r.workerCount || 0,
             personCount: r.workerCount || 0,
-            vehicleType: '', // Blank for labor as requested
-            vehicleNo: '',   // Blank for labor as requested
+            vehicleType: '', // Không điền cho công nhân
+            vehicleNo: '', // Không điền cho công nhân
             containerIds: r.items.map(i => i.contId).filter(Boolean),
             containerNos: r.items.map(i => i.contNo).filter(Boolean),
             shift: r.shift,
@@ -445,7 +445,7 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
             quantity: totalUnits,
             weight: totalWeight,
             dayLaborerCount: 0,
-            note: '', // Note cleared as user wants names in Team/Organization
+            note: '',
             status: 'COMPLETED' as any
           };
           newWOs.push(woCN);
@@ -472,11 +472,11 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
                 businessType: r.mode === 'NHAP' ? 'IMPORT' : 'EXPORT',
                 isOutsourced: isExternal,
                 teamName: uniqueNames || (isExternal ? 'Cơ giới thuê ngoài' : 'Đội xe DNL'),
-                organization: uniqueNames || (isExternal ? 'Cơ giới thuê ngoài' : 'Đội xe DNL'),
+                organization: uniqueNames || (isExternal ? 'Cơ giới thuê ngoài' : 'Đội xe DNL'), // Lấy tên cơ giới
                 peopleCount: mechs.length,
                 personCount: mechs.length,
-                vehicleType: r.vehicleType || 'Xe nâng',
-                vehicleNo: uniqueNames || r.vehicleNo || '', // Ensure vehicle names/numbers are filled
+                vehicleType: r.vehicleType || '', // Lấy từ Tally
+                vehicleNo: r.vehicleNo || '', // Lấy từ Tally
                 containerIds: r.items.map(i => i.contId).filter(Boolean),
                 containerNos: r.items.map(i => i.contNo).filter(Boolean),
                 shift: r.shift,
@@ -487,7 +487,7 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
                 quantity: totalUnits,
                 weight: totalWeight,
                 dayLaborerCount: 0,
-                note: isExternal ? `Thuê ngoài: ${uniqueNames}` : `Lái xe: ${uniqueNames}`,
+                note: isExternal ? `Thuê ngoài: ${uniqueNames}` : '',
                 status: 'COMPLETED' as any
               };
               newWOs.push(woMech);
