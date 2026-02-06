@@ -108,6 +108,7 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
   const [editingReport, setEditingReport] = useState<TallyReport | null>(null);
   const [lastCreatedWOs, setLastCreatedWOs] = useState<WorkOrder[]>([]);
   const [lastCreatedReports, setLastCreatedReports] = useState<TallyReport[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Listen for external updates (e.g. from Logistics) - Only for things not yet in DB if any
   useEffect(() => {
@@ -139,7 +140,7 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
 
     return {
       id: v.id,
-      name: v.vesselName,
+      vesselName: v.vesselName,
       voyage: v.voyageNo || '',
       eta: v.eta,
       etd: v.etd,
@@ -200,8 +201,14 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
     const ITEMS_PER_PAGE = 15;
     let hasError = false;
 
-    // Helper to generate unique IDs
-    const generateId = (prefix: string, index: number = 0) => `${prefix}-${Date.now()}-${index}`;
+    // Helper to generate unique IDs - Use a more stable pattern
+    const generateId = (prefix: string, index: number = 0) => {
+      const stableBase = `${prefix}-${report.vesselId}-${report.mode}-${report.shift}`;
+      return `${stableBase}-${index}`;
+    };
+
+    if (isSaving) return;
+    setIsSaving(true);
 
     try {
       if (editingReport) {
@@ -360,6 +367,8 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
                 shift: r.shift,             // Update Shift
                 workOrderApproved: true,    // Auto-approve WO check?
                 tallyApproved: true,        // Auto-approve Tally
+                actualPkgs: item.actualUnits,   // Sync Actual Units
+                actualWeight: item.actualWeight, // Sync Actual Weight
                 images: currentImages,      // Sync Image
                 ngayNhapKho: r.workDate,    // Sync Work Date from Tally to Date In
                 // updated_at: ... handled by DB service
@@ -528,6 +537,8 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
     } catch (error) {
       console.error("Critical Save Error:", error);
       alert("LỖI NGHIÊM TRỌNG: Đã xảy ra lỗi trong quá trình lưu. Dữ liệu có thể chưa được đồng bộ.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -625,7 +636,7 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
       <SuccessPopup
         show={showSuccess}
         onClose={() => setShowSuccess(false)}
-        vesselName={selectedVessel?.name}
+        vesselName={selectedVessel?.vesselName}
       />
 
       <main className={`flex-1 w-full mx-auto max-w-screen-lg ${step !== 'HOAN_TAT' ? 'p-4 md:p-6 lg:p-8' : ''}`}>

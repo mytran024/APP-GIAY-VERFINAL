@@ -28,7 +28,9 @@ export interface TallyItem {
   size?: string; // Kích thước/Loại xe
   commodityType: string;
   sealNo: string;
+  targetUnits?: number;
   actualUnits: number;
+  targetWeight?: number;
   actualWeight: number;
   isScratchedFloor: boolean;
   tornUnits: number;
@@ -113,7 +115,7 @@ export interface WorkOrder {
 
 export interface Vessel {
   id: string;
-  name: string;
+  vesselName: string;
   voyage: string;
   eta: string;
   etd?: string;

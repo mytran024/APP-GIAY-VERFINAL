@@ -7,8 +7,6 @@ import { TransportView } from './components/TransportView';
 import { Login } from './components/Login';
 import { Role, User, ContainerCS, ContainerStatus as PaperContainerStatus } from './types';
 import NotificationDropdown from '../../components/NotificationDropdown';
-import { MOCK_VESSELS } from './constants';
-
 import { Bell, Check, Trash2, LogOut } from 'lucide-react';
 import { User as GlobalUser, Role as GlobalRole } from '../../types';
 import { db } from '../../services/db'; // Import DB
@@ -40,7 +38,6 @@ const PaperEntry: React.FC<PaperProps> = ({ user: globalUser, onLogout }) => {
   const [globalVessels, setGlobalVessels] = useState<any[]>([]); // Using any for now or Import Global Vessel Type
 
   useEffect(() => {
-    // Load initial data
     const loadData = async () => {
       const [containers, vessels] = await Promise.all([
         db.getContainers(),
@@ -58,31 +55,18 @@ const PaperEntry: React.FC<PaperProps> = ({ user: globalUser, onLogout }) => {
         shippingLine: v.consignee || '',
         status: v.exportPlanActive ? 'XUAT' as any : 'NHAP' as any
       }));
-      setGlobalVessels(mappedVessels.length > 0 ? mappedVessels : MOCK_VESSELS);
+      setGlobalVessels(mappedVessels);
     };
 
     loadData();
 
-    // Real-time Sync Listeners
-    const handleStorageUpdate = (e: CustomEvent) => {
-      if (e.detail.key === 'danalog_containers' || e.detail.key === 'danalog_vessels') {
-        loadData();
-      }
-    };
-
-    // Cross-tab sync
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'danalog_containers' || e.key === 'danalog_vessels') {
-        loadData();
-      }
-    };
-
-    window.addEventListener('storage-update', handleStorageUpdate as EventListener);
-    window.addEventListener('storage', handleStorage);
+    // Real-time Sync Listeners using Supabase
+    const vSub = db.subscribeToTable('vessels', loadData);
+    const cSub = db.subscribeToTable('containers', loadData);
 
     return () => {
-      window.removeEventListener('storage-update', handleStorageUpdate as EventListener);
-      window.removeEventListener('storage', handleStorage);
+      vSub.unsubscribe();
+      cSub.unsubscribe();
     };
   }, []);
 
@@ -108,6 +92,8 @@ const PaperEntry: React.FC<PaperProps> = ({ user: globalUser, onLogout }) => {
       dnlDeclDate: c.ngayTkDnl,
       customsPkgs: c.customsPkgs,
       customsWeight: c.customsWeight,
+      actualPkgs: c.actualPkgs,
+      actualWeight: c.actualWeight,
 
       discrepancyReason: '' // Could map remarks?
     }));

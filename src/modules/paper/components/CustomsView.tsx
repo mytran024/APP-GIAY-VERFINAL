@@ -71,7 +71,10 @@ export const CustomsView: React.FC<CustomsViewProps> = ({ vessels, csContainers,
 
 
   useEffect(() => {
-    db.getSeals().then(setAllSeals);
+    const loadSeals = () => db.getSeals().then(setAllSeals);
+    loadSeals();
+    const sub = db.subscribeToTable('seals', loadSeals);
+    return () => { sub.unsubscribe(); };
   }, []);
 
   // FIX: Reset selectedVesselId when switching tabs (IMPORT <-> EXPORT)

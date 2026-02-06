@@ -91,6 +91,8 @@ export interface Container {
   carrier: string;
   pkgs: number;
   weight: number;
+  actualPkgs?: number;
+  actualWeight?: number;
   customsPkgs?: number;
   customsWeight?: number;
   billNo: string;

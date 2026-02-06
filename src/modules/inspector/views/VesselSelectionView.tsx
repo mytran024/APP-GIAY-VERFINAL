@@ -109,7 +109,7 @@ const VesselSelectionView: React.FC<VesselSelectionViewProps> = ({ vessels = [],
                 <option value="" disabled>-- Bấm để chọn tàu --</option>
                 {vessels.map(v => (
                   <option key={v.id} value={v.id} disabled={v.isBlocked}>
-                    {v.name} {v.isBlocked ? `(ĐANG CHỜ DỮ LIỆU: ${v.blockReason})` : `| ${formatDate(v.eta)} - ${formatDate(v.etd)}`}
+                    {v.vesselName} {v.isBlocked ? `(ĐANG CHỜ DỮ LIỆU: ${v.blockReason})` : `| ${formatDate(v.eta)} - ${formatDate(v.etd)}`}
                   </option>
                 ))}
               </select>

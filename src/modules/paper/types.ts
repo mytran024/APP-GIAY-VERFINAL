@@ -56,6 +56,8 @@ export interface ContainerCS {
   dnlDeclDate?: string; // ngayTkDnl
   customsPkgs?: number; // customsPkgs
   customsWeight?: number; // customsWeight
+  actualPkgs?: number;
+  actualWeight?: number;
 
   // Field to store specific issue reason (synced from Customs)
   discrepancyReason?: string;

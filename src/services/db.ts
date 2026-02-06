@@ -104,6 +104,8 @@ export const db = {
       carrier,
       pkgs,
       weight,
+      actualPkgs:actual_pkgs,
+      actualWeight:actual_weight,
       customsPkgs:customs_pkgs,
       customsWeight:customs_weight,
       billNo:bill_no,
@@ -152,6 +154,8 @@ export const db = {
             carrier: c.carrier,
             pkgs: c.pkgs,
             weight: c.weight,
+            actual_pkgs: c.actualPkgs,
+            actual_weight: c.actualWeight,
             customs_pkgs: c.customsPkgs,
             customs_weight: c.customsWeight,
             bill_no: c.billNo,
@@ -203,6 +207,8 @@ export const db = {
                     carrier: c.carrier,
                     pkgs: c.pkgs,
                     weight: c.weight,
+                    actual_pkgs: c.actualPkgs,
+                    actual_weight: c.actualWeight,
                     customs_pkgs: c.customsPkgs,
                     customs_weight: c.customsWeight,
                     bill_no: c.billNo,
@@ -333,8 +339,26 @@ export const db = {
         return uuidRegex.test(id);
     },
 
+    // Helper: Convert any string to a stable UUID
+    _toUUID: (str: string): string => {
+        if (db._isValidUUID(str)) return str;
+
+        // Simple hashing to generate a deterministic UUID-like string
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32bit integer
+        }
+
+        const absHash = Math.abs(hash).toString(16).padStart(8, '0');
+        // We use a fixed namespace prefix and the hash to make it look like a UUID
+        // This is not a perfect UUID v5 but sufficient for internal stable mapping
+        return `00000000-0000-4000-8000-${absHash.repeat(2).substring(0, 12)}`;
+    },
+
     upsertTallyReport: async (report: TallyReport): Promise<{ success: boolean, id?: string, error?: any }> => {
-        const isUpdate = db._isValidUUID(report.id);
+        const reportId = db._toUUID(report.id || `TALLY-${Date.now()}`);
 
         const reportPayload: any = {
             vessel_id: report.vesselId,
@@ -357,7 +381,7 @@ export const db = {
             proof_image_url: report.proofImageUrl
         };
 
-        if (isUpdate) reportPayload.id = report.id;
+        reportPayload.id = reportId;
 
         const { data: savedReport, error: rError } = await supabase
             .from('tally_reports')
@@ -370,7 +394,7 @@ export const db = {
             return { success: false, error: rError };
         }
 
-        const reportId = savedReport.id;
+        // reportId is already determined above
 
         // Delete existing items for this report
         await supabase.from('tally_items').delete().eq('report_id', reportId);
@@ -406,9 +430,10 @@ export const db = {
         if (!reports || reports.length === 0) return { success: true, ids: [] };
 
         // 1. Prepare Report Payloads
-        const reportPayloads = reports.map(report => {
-            const isUpdate = db._isValidUUID(report.id);
+        const reportPayloads = reports.map((report, idx) => {
+            const reportId = db._toUUID(report.id || `TALLY-BATCH-${idx}-${Date.now()}`);
             const payload: any = {
+                id: reportId,
                 vessel_id: report.vesselId,
                 mode: report.mode,
                 shift: report.shift,
@@ -428,7 +453,6 @@ export const db = {
                 created_by: report.createdBy,
                 proof_image_url: report.proofImageUrl
             };
-            if (isUpdate) payload.id = report.id;
             return payload;
         });
 
@@ -535,7 +559,7 @@ export const db = {
     },
 
     upsertWorkOrder: async (wo: WorkOrder): Promise<{ data: WorkOrder | null, error: any }> => {
-        const isUpdate = db._isValidUUID(wo.id);
+        const woId = db._toUUID(wo.id || `WO-${Date.now()}`);
         const hasValidReportId = db._isValidUUID(wo.reportId || '');
 
         const payload: any = {
@@ -565,7 +589,7 @@ export const db = {
             is_outsourced: wo.isOutsourced
         };
 
-        if (isUpdate) payload.id = wo.id;
+        payload.id = woId;
         if (hasValidReportId) payload.report_id = wo.reportId;
 
         const { data, error } = await supabase.from('work_orders').upsert(payload).select().single();
@@ -579,11 +603,12 @@ export const db = {
     upsertWorkOrders: async (wos: WorkOrder[]): Promise<{ success: boolean, error?: any }> => {
         if (!wos || wos.length === 0) return { success: true };
 
-        const payloads = wos.map(wo => {
-            const isUpdate = db._isValidUUID(wo.id);
+        const payloads = wos.map((wo, idx) => {
+            const woId = db._toUUID(wo.id || `WO-BATCH-${idx}-${Date.now()}`);
             const hasValidReportId = db._isValidUUID(wo.reportId || '');
 
             const payload: any = {
+                id: woId,
                 vessel_id: wo.vesselId,
                 type: wo.type,
                 business_type: wo.businessType,
@@ -610,7 +635,6 @@ export const db = {
                 is_outsourced: wo.isOutsourced
             };
 
-            if (isUpdate) payload.id = wo.id;
             if (hasValidReportId) payload.report_id = wo.reportId;
             return payload;
         });
