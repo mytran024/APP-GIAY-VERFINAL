@@ -265,6 +265,7 @@ export const db = {
             .select(`
                 id,
                 vesselId:vessel_id,
+                vesselName:vessel_name,
                 mode,
                 shift,
                 workDate:work_date,
@@ -344,7 +345,6 @@ export const db = {
         // Step 4: Combine reports with their items
         return reports.map((r: any) => ({
             ...r,
-            vesselName: '', // Will be populated by UI if needed
             creatorName: r.createdBy || 'Kiểm viên',
             items: itemsByReportId[r.id] || []
         })) as TallyReport[];
@@ -380,6 +380,7 @@ export const db = {
 
         const reportPayload: any = {
             vessel_id: report.vesselId,
+            vessel_name: report.vesselName || '',
             mode: report.mode,
             shift: report.shift,
             work_date: report.workDate || null,
@@ -453,6 +454,7 @@ export const db = {
             const payload: any = {
                 id: reportId,
                 vessel_id: report.vesselId,
+                vessel_name: report.vesselName || '',
                 mode: report.mode,
                 shift: report.shift,
                 work_date: report.workDate || null,
