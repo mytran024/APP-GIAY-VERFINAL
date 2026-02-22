@@ -75,6 +75,25 @@ const HistoryView: React.FC<HistoryViewProps> = ({ reports, workOrders, mode, on
     return Array.from(map.entries()).map(([id, name]) => ({ id, vesselName: name }));
   }, [myReports]);
 
+  // Compute per-vessel sequence numbers: sort all reports by createdAt ascending,
+  // then assign 1, 2, 3... per vessel
+  const vesselSequenceMap = useMemo(() => {
+    const map = new Map<string, number>(); // reportId -> sequenceNumber
+    const vesselCounters = new Map<string, number>(); // vesselId -> current count
+    // Sort by createdAt ascending so earliest report = 01
+    const sorted = [...reports].sort((a, b) => {
+      const ta = typeof a.createdAt === 'number' ? a.createdAt : new Date(a.createdAt || 0).getTime();
+      const tb = typeof b.createdAt === 'number' ? b.createdAt : new Date(b.createdAt || 0).getTime();
+      return ta - tb;
+    });
+    sorted.forEach(r => {
+      const count = (vesselCounters.get(r.vesselId) || 0) + 1;
+      vesselCounters.set(r.vesselId, count);
+      map.set(r.id, count);
+    });
+    return map;
+  }, [reports]);
+
   // Extract unique organizations for dropdown from constant lists (CS)
   const availableOrgs = useMemo(() => {
     switch (woFilter) {
@@ -415,7 +434,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ reports, workOrders, mode, on
                     <div className="flex items-center gap-2">
                       <h4 className="font-black text-blue-900 text-sm uppercase">{report.vesselName || 'N/A'}</h4>
                       <span className="text-[9px] font-black text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 uppercase">
-                        Số: {report.id ? report.id.split('-').pop() : '01'}
+                        No: {(vesselSequenceMap.get(report.id) || 1).toString().padStart(2, '0')} - {report.vesselName || 'N/A'}
                       </span>
                     </div>
                     <h5 className="font-bold text-gray-800 text-sm leading-tight">{report.owner}</h5>
@@ -595,7 +614,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ reports, workOrders, mode, on
           <div className="p-4 flex justify-center bg-gray-700 min-h-screen">
             <div ref={printRef} className="w-fit">
               {previewReport ? (
-                <TallyPrintTemplate report={previewReport} vessel={{ id: previewReport.vesselId, vesselName: previewReport.vesselName || '', voyage: '', eta: '', customerName: previewReport.owner || '', totalConts: 0, totalUnitsExpected: 0, totalWeightExpected: 0 } as Vessel} isPreview={true} />
+                <TallyPrintTemplate report={previewReport} vessel={{ id: previewReport.vesselId, vesselName: previewReport.vesselName || '', voyage: '', eta: '', customerName: previewReport.owner || '', totalConts: 0, totalUnitsExpected: 0, totalWeightExpected: 0 } as Vessel} isPreview={true} sequenceNumber={vesselSequenceMap.get(previewReport.id) || 1} />
               ) : (
                 reports.find(r => r.id === previewWO?.reportId) && <WorkOrderPrintTemplate wo={previewWO!} report={reports.find(r => r.id === previewWO?.reportId)!} isPreview={true} />
               )}

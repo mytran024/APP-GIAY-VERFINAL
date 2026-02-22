@@ -7,9 +7,10 @@ interface TallyPrintTemplateProps {
   report: TallyReport;
   vessel: Vessel;
   isPreview?: boolean;
+  sequenceNumber?: number; // Số thứ tự phiếu tally theo tàu (01, 02, 03...)
 }
 
-const TallyPrintTemplate: React.FC<TallyPrintTemplateProps> = ({ report, vessel, isPreview }) => {
+const TallyPrintTemplate: React.FC<TallyPrintTemplateProps> = ({ report, vessel, isPreview, sequenceNumber }) => {
   // Normalize Vessel Name: Prefer the name saved in the report (from inspector's input), fallback to system vessel
   const rawVesselName = report.vesselName || vessel.vesselName || '';
   const cleanVesselName = rawVesselName.replace(/^TÀU\s+/i, '') || rawVesselName;
@@ -23,11 +24,8 @@ const TallyPrintTemplate: React.FC<TallyPrintTemplateProps> = ({ report, vessel,
   const monthStr = (today.getMonth() + 1).toString().padStart(2, '0');
   const yearStr = today.getFullYear().toString();
 
-  // Extract base sequence number from ID (Format: MODE-VesselID-Seq, e.g. NHAP-v1-01)
-  const idParts = report.id ? report.id.split('-') : [];
-  const seqPart = idParts.length > 0 ? idParts[idParts.length - 1] : '01';
-  let baseSeq = parseInt(seqPart);
-  if (isNaN(baseSeq) || baseSeq > 999) baseSeq = 1;
+  // Per-vessel sequence: use prop if available, otherwise fallback to 1
+  const baseSeq = sequenceNumber || 1;
 
   // Helper chuyển số sang chữ (Tiếng Việt)
   const numberToText = (n: number): string => {
