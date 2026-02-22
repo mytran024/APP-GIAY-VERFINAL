@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Vessel, Shift, TallyReport, WorkOrder, MechanicalDetail, TallyItem, Container } from './types';
 import { HANDLING_METHODS, MOCK_CONTAINERS } from './constants';
 import LoginView from './views/LoginView';
@@ -109,6 +109,18 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
   const [lastCreatedWOs, setLastCreatedWOs] = useState<WorkOrder[]>([]);
   const [lastCreatedReports, setLastCreatedReports] = useState<TallyReport[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Collect all container IDs already used in any tally report (draft or final)
+  // so they cannot be selected again in a new tally
+  const usedContainerIds = useMemo(() => {
+    const ids = new Set<string>();
+    allReports.forEach(r => {
+      // Skip the report currently being edited so its containers remain selectable
+      if (editingReport && r.id === editingReport.id) return;
+      r.items?.forEach(item => { ids.add(item.contId); });
+    });
+    return ids;
+  }, [allReports, editingReport]);
 
   // Listen for external updates (e.g. from Logistics) - Only for things not yet in DB if any
   useEffect(() => {
@@ -595,7 +607,9 @@ const InspectorEntry: React.FC<InspectorProps> = ({ user: globalUser, onLogout }
             onBack={() => setStep('CHON_LOAI_TALLY')}
             availableContainers={inspectorContainers.filter(c => {
               const original = logisticsContainers.find(lc => lc.id === c.id);
-              return original?.vesselId === selectedVessel?.id && original?.status !== 'COMPLETED';
+              return original?.vesselId === selectedVessel?.id
+                && original?.status !== 'COMPLETED'
+                && !usedContainerIds.has(c.id);
             })}
             workers={workerOptions}
             drivers={driverOptions}
