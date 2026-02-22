@@ -10,8 +10,9 @@ interface TallyPrintTemplateProps {
 }
 
 const TallyPrintTemplate: React.FC<TallyPrintTemplateProps> = ({ report, vessel, isPreview }) => {
-  // Normalize Vessel Name: Strip redundant "TÀU" prefix if present in the System Name
-  const cleanVesselName = vessel.vesselName?.replace(/^TÀU\s+/i, '') || vessel.vesselName;
+  // Normalize Vessel Name: Prefer the name saved in the report (from inspector's input), fallback to system vessel
+  const rawVesselName = report.vesselName || vessel.vesselName || '';
+  const cleanVesselName = rawVesselName.replace(/^TÀU\s+/i, '') || rawVesselName;
 
   const ITEMS_PER_PAGE = 10;
   const items = report.items || [];
@@ -301,7 +302,7 @@ const TallyPrintTemplate: React.FC<TallyPrintTemplateProps> = ({ report, vessel,
                 </div>
                 <p className="font-bold">KHO HÀNG: DANALOG</p>
                 <p className="italic text-[9pt]">Docks Office</p>
-                <p className="mt-1">Số: <span className="font-bold ml-2">{currentReportNumber}</span></p>
+                <p className="mt-1">Số: <span className="font-bold ml-2">{currentReportNumber} - {cleanVesselName}</span></p>
                 <p className="italic text-[9pt]">No.</p>
               </div>
               <div className="w-[60%] text-center">

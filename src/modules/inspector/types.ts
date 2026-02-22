@@ -49,6 +49,7 @@ export interface MechanicalDetail {
 export interface TallyReport {
   id: string;
   vesselId: string;
+  vesselName?: string; // Tên tàu từ kiểm viên chọn
   mode: 'NHAP' | 'XUAT';
   shift: Shift;
   workDate: string;

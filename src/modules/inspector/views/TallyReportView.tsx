@@ -54,6 +54,7 @@ const TallyReportView: React.FC<TallyReportViewProps> = ({ vessel, shift, mode, 
 
   const [currentReport, setCurrentReport] = useState<Partial<TallyReport>>({
     vesselId: vessel.id,
+    vesselName: vessel.vesselName,
     mode: mode,
     shift: shift,
     workDate: workDate,
