@@ -1,7 +1,8 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { TallyReport, WorkOrder } from '../types';
-import { MOCK_VESSELS, MOCK_WORKERS, MOCK_DRIVERS, MOCK_EXTERNAL_UNITS } from '../constants';
+import { MOCK_WORKERS, MOCK_DRIVERS, MOCK_EXTERNAL_UNITS } from '../constants';
+import { Vessel } from '../types';
 import TallyPrintTemplate from '../components/TallyPrintTemplate';
 import WorkOrderPrintTemplate from '../components/WorkOrderPrintTemplate';
 import { generatePDF } from '../../../utils/pdfUtils';
@@ -61,6 +62,17 @@ const HistoryView: React.FC<HistoryViewProps> = ({ reports, workOrders, mode, on
     const set = new Set<string>();
     myReports.forEach(r => { if (r.owner) set.add(r.owner); });
     return Array.from(set);
+  }, [myReports]);
+
+  // Extract unique vessels from actual report data (dynamic, not hardcoded)
+  const reportVessels = useMemo(() => {
+    const map = new Map<string, string>();
+    myReports.forEach(r => {
+      if (r.vesselId && r.vesselName && !map.has(r.vesselId)) {
+        map.set(r.vesselId, r.vesselName);
+      }
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, vesselName: name }));
   }, [myReports]);
 
   // Extract unique organizations for dropdown from constant lists (CS)
@@ -333,7 +345,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ reports, workOrders, mode, on
                   </div>
                   {isVesselDropdownOpen && (
                     <div className="absolute z-10 mt-1 w-full bg-white rounded-xl shadow-lg border border-gray-100 max-h-60 overflow-y-auto">
-                      {MOCK_VESSELS.map(v => (
+                      {reportVessels.map(v => (
                         <div
                           key={v.id}
                           className="px-3 py-2 hover:bg-blue-50 cursor-pointer flex items-center gap-2 border-b border-gray-50 last:border-0"
@@ -348,6 +360,9 @@ const HistoryView: React.FC<HistoryViewProps> = ({ reports, workOrders, mode, on
                           <span className="text-[11px] font-bold text-gray-700 truncate">{v.vesselName}</span>
                         </div>
                       ))}
+                      {reportVessels.length === 0 && (
+                        <div className="px-3 py-2 text-[11px] text-gray-400 italic text-center">Không có dữ liệu</div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -398,7 +413,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ reports, workOrders, mode, on
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <h4 className="font-black text-blue-900 text-sm uppercase">{MOCK_VESSELS.find(v => v.id === report.vesselId)?.vesselName || 'TÀU S30'}</h4>
+                      <h4 className="font-black text-blue-900 text-sm uppercase">{report.vesselName || 'N/A'}</h4>
                       <span className="text-[9px] font-black text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 uppercase">
                         Số: {report.id ? report.id.split('-').pop() : '01'}
                       </span>
@@ -509,7 +524,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ reports, workOrders, mode, on
                   <div className="flex justify-between items-center mb-4">
                     <div className="flex items-center gap-2">
                       <span className={`w-2.5 h-2.5 rounded-full ${getDotColor(wo.type)}`}></span>
-                      <span className="text-[10px] font-black text-gray-400 uppercase">{MOCK_VESSELS.find(v => v.id === relatedTally?.vesselId)?.vesselName || 'N/A'}</span>
+                      <span className="text-[10px] font-black text-gray-400 uppercase">{relatedTally?.vesselName || 'N/A'}</span>
                     </div>
                     <button onClick={(e) => handleOpenWOPreview(e, wo)} className="w-8 h-8 flex items-center justify-center bg-gray-100 text-gray-500 rounded-full shadow-sm active:scale-90 transition-all hover:bg-gray-200">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
@@ -580,7 +595,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ reports, workOrders, mode, on
           <div className="p-4 flex justify-center bg-gray-700 min-h-screen">
             <div ref={printRef} className="w-fit">
               {previewReport ? (
-                <TallyPrintTemplate report={previewReport} vessel={MOCK_VESSELS.find(v => v.id === previewReport.vesselId) || MOCK_VESSELS[0]} isPreview={true} />
+                <TallyPrintTemplate report={previewReport} vessel={{ id: previewReport.vesselId, vesselName: previewReport.vesselName || '', voyage: '', eta: '', customerName: previewReport.owner || '', totalConts: 0, totalUnitsExpected: 0, totalWeightExpected: 0 } as Vessel} isPreview={true} />
               ) : (
                 reports.find(r => r.id === previewWO?.reportId) && <WorkOrderPrintTemplate wo={previewWO!} report={reports.find(r => r.id === previewWO?.reportId)!} isPreview={true} />
               )}
